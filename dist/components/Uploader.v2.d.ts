@@ -1,0 +1,4 @@
+import { LoadedPropsType } from './propsType.v2';
+export declare const Uploader: ({ isImmediateSyncMode, maxPhotos, syncPhotos, initialPhotos, onPhotosChange, attachableId, attachableType, processRunning, mainPhotoHash: externalMainPhotoHash, onMainPhotoChange, mutations, styling: customStyling, photos: legacyPhotos, addPhoto: legacyAddPhoto, removePhotoByHash: legacyRemovePhotoByHash, setMainPhotoHash: legacySetMainPhotoHash, getUploadUrl: legacyGetUploadUrl, getPreviewUrl: legacyGetPreviewUrl, directUpload: legacyDirectUpload, createBlob: legacyCreateBlob, createAttachment: legacyCreateAttachment, deleteAttachment: legacyDeleteAttachment, resetMainPhotoHash: legacyResetMainPhotoHash, setPhotoState: legacySetPhotoState, setPhotos: legacySetPhotos, }: LoadedPropsType) => import("react/jsx-runtime").JSX.Element;
+export default Uploader;
+//# sourceMappingURL=Uploader.v2.d.ts.map

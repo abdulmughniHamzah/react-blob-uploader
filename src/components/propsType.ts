@@ -1,6 +1,6 @@
 import { PhotoType } from '../types/photo';
 
-type SkeletonPropsType = {
+export type SkeletonPropsType = {
   skeleton: true;
 };
 

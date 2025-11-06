@@ -1,7 +1,7 @@
 {
   "name": "react-image-uploader",
-  "version": "1.0.0",
-  "description": "A state-agnostic, production-ready React component for multi-image uploads with drag & drop, reordering, and cloud direct upload support",
+  "version": "2.0.0",
+  "description": "A self-contained, production-ready React component for multi-image uploads with drag & drop, reordering, and cloud direct upload support. Features internal state management, mutation callbacks, and customizable styling.",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
