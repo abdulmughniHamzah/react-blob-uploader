@@ -5,7 +5,7 @@ yarn.lock
 pnpm-lock.yaml
 
 # Build
-dist/
+# dist/ - keeping built files for GitHub installation
 *.tsbuildinfo
 
 # Testing

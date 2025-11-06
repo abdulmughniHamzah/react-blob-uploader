@@ -1,0 +1,3 @@
+declare function SortablePhoto({ id, photo, filesMap, isImmediateSyncMode, attachableId, mainPhotoHash, setMainPhotoHash, deleteAttachment, deleteFromFilesMap, removePhotoByHash, getUploadUrl, getPreviewUrl, directUpload, createBlob, createAttachment, resetMainPhotoHash, syncPhotos, setPhotoState, }: any): import("react/jsx-runtime").JSX.Element;
+export default SortablePhoto;
+//# sourceMappingURL=SortablePhoto.d.ts.map
