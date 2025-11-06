@@ -1,4 +1,4 @@
-# React Image Uploader DnD
+# React Image Uploader
 
 A state-agnostic, production-ready React component for multi-image uploads with drag & drop reordering and cloud direct upload support.
 
