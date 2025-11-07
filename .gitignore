@@ -2,8 +2,7 @@
 node_modules/
 package-lock.json
 
-# Build output
-# dist/ - Committed for GitHub installs
+# Build output - dist is committed for GitHub installs
 *.tsbuildinfo
 
 # IDE
