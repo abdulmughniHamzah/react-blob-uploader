@@ -4705,6 +4705,8 @@ function mergeStyling(custom) {
         ...custom,
         blobContainerClassName: custom.blobContainerClassName || custom.photoContainerClassName || defaultStyling.blobContainerClassName,
         blobImageClassName: custom.blobImageClassName || custom.photoImageClassName || defaultStyling.blobImageClassName,
+        blobContainerFailedClassName: custom.blobContainerFailedClassName || custom.photoContainerFailedClassName || defaultStyling.blobContainerFailedClassName,
+        blobImageFailedClassName: custom.blobImageFailedClassName || custom.photoImageFailedClassName || defaultStyling.blobImageFailedClassName,
         mainBlobBadgeClassName: custom.mainBlobBadgeClassName || custom.mainPhotoBadgeClassName || defaultStyling.mainBlobBadgeClassName,
         loadingContainerClassName: custom.loadingContainerClassName || custom.loadingClassName || defaultStyling.loadingContainerClassName,
         errorContainerClassName: custom.errorContainerClassName || custom.errorClassName || defaultStyling.errorContainerClassName,

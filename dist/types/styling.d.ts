@@ -6,7 +6,9 @@ export interface StylingProps {
     blobImageClassName?: string;
     photoImageClassName?: string;
     blobContainerFailedClassName?: string;
+    photoContainerFailedClassName?: string;
     blobImageFailedClassName?: string;
+    photoImageFailedClassName?: string;
     removeButtonClassName?: string;
     mainBlobBadgeClassName?: string;
     mainPhotoBadgeClassName?: string;
