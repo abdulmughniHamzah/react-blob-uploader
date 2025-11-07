@@ -1,77 +1,106 @@
-# React Image Uploader
+# React Blob Uploader
 
-A state-agnostic, production-ready React component for multi-image uploads with drag & drop reordering and cloud direct upload support.
+A truly framework-agnostic, production-ready React component for file uploads (images, documents, videos) with drag & drop, manual retry, and cloud direct upload support.
 
-[![npm version](https://img.shields.io/npm/v/react-image-uploader.svg)](https://www.npmjs.com/package/react-image-uploader)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## ✨ Features
 
-- 🎨 **State-Agnostic** - Works with useState, Redux, Zustand, Context API, Jotai, or any state management pattern
-- 📦 **Zero Configuration** - Works out of the box with sensible defaults
+- 🎨 **Truly Framework-Agnostic** - Flat result structures, works with ANY state management or backend
+- 📦 **Self-Contained** - Internal state management, just provide mutation callbacks
 - 🎭 **Two Operating Modes** - Immediate sync or batch sync for different use cases
 - 🔄 **Drag & Drop Reordering** - Smooth animations powered by @dnd-kit
-- 📸 **Main Image Selection** - Mark a primary image with visual indicators
+- 📸 **Main Blob Selection** - Mark a primary file with visual indicators
 - ☁️ **Cloud Direct Upload** - Upload directly to S3/cloud storage (no backend bottleneck)
-- 🎯 **TypeScript** - Full type safety with exported types
+- 🔁 **Manual Retry** - Failed states with retry buttons (no infinite loops)
+- 🎯 **TypeScript** - Full type safety with flat result types
 - ♿ **Accessible** - WCAG compliant with keyboard navigation
 - 🎨 **Customizable** - Style with your own CSS or Tailwind classes
 - 🚀 **Performance** - Optimized with React.memo and efficient re-renders
 - 📱 **Responsive** - Mobile-friendly touch support
 - 🔐 **Secure** - SHA-256 checksums for duplicate detection and integrity verification
-- 🔄 **14-State Lifecycle** - Comprehensive state machine for upload flow
+- 🔄 **19-State Lifecycle** - Comprehensive state machine with 5 failed states for retry
 
 ## 📦 Installation
 
 ```bash
-npm install react-image-uploader
+npm install github:abdulmughniHamzah/react-blob-uploader
 # or
-yarn add react-image-uploader
+yarn add github:abdulmughniHamzah/react-blob-uploader
 # or
-pnpm add react-image-uploader
+pnpm add github:abdulmughniHamzah/react-blob-uploader
 ```
 
 ## 🚀 Quick Start
 
 ```tsx
 import { useState } from 'react';
-import ImageUploader, { PhotoType } from 'react-image-uploader';
+import ImageUploader, { PhotoType, MutationCallbacks } from 'react-blob-uploader';
 
 function MyForm() {
   const [photos, setPhotos] = useState<PhotoType[]>([]);
   const [mainPhotoHash, setMainPhotoHash] = useState<string | null>(null);
 
+  // Implement mutation callbacks with FLAT result structures
+  const mutations: MutationCallbacks = {
+    getUploadUrl: async ({ hash, name, mimeType, size }) => {
+      const res = await fetch('/api/upload-url', {
+        method: 'POST',
+        body: JSON.stringify({ checksum: hash, name, mimeType, size })
+      });
+      const data = await res.json();
+      return {
+        success: true,
+        hash,
+        uploadUrl: data.uploadUrl,
+        key: data.key,
+      };
+    },
+    
+    directUpload: async ({ hash, uploadUrl, file }) => {
+      await fetch(uploadUrl, { method: 'PUT', body: file });
+      return { success: true, hash };
+    },
+    
+    createBlob: async ({ hash, key, name, mimeType, size }) => {
+      const res = await fetch('/api/blobs', {
+        method: 'POST',
+        body: JSON.stringify({ key, checksum: hash, name, mimeType, size })
+      });
+      const data = await res.json();
+      return { success: true, hash, id: data.id, key: data.key, url: data.url };
+    },
+    
+    createAttachment: async ({ hash, blobId, attachableId, attachableType }) => {
+      const res = await fetch('/api/attachments', {
+        method: 'POST',
+        body: JSON.stringify({ blobId, attachableId, attachableType })
+      });
+      const data = await res.json();
+      return { success: true, hash, id: data.id };
+    },
+    
+    deleteAttachment: async ({ hash, attachmentId }) => {
+      await fetch(`/api/attachments/${attachmentId}`, { method: 'DELETE' });
+      return { success: true, hash };
+    },
+    
+    getPreviewUrl: async ({ hash, key }) => {
+      return { success: true, hash, previewUrl: key };
+    },
+  };
+
   return (
     <ImageUploader
-      photos={photos}
+      initialPhotos={photos}
+      onPhotosChange={setPhotos}
       mainPhotoHash={mainPhotoHash}
-      addPhoto={(photo) => setPhotos([...photos, photo])}
-      removePhotoByHash={(hash) => 
-        setPhotos(photos.filter(p => p.checksum !== hash))
-      }
-      setMainPhotoHash={setMainPhotoHash}
-      resetMainPhotoHash={() => setMainPhotoHash(null)}
-      setPhotoState={(hash, state) => 
-        setPhotos(photos.map(p => 
-          p.checksum === hash ? { ...p, state } : p
-        ))
-      }
-      setPhotos={setPhotos}
-      removePhotoByKey={(key) => 
-        setPhotos(photos.filter(p => p.key !== key))
-      }
-      // Cloud upload callbacks (implement your own)
-      getUploadUrl={async (hash) => {/* Get presigned URL from your API */}}
-      directUpload={async (hash, file) => {/* Upload to S3/cloud */}}
-      createBlob={async (hash) => {/* Create blob record */}}
-      createAttachment={async (hash, id) => {/* Link to entity */}}
-      getPreviewUrl={async (hash) => {/* Get CDN URL */}}
-      deleteAttachment={async (hash) => {/* Delete attachment */}}
-      // Configuration
-      isImmediateSyncMode={false}
-      syncPhotos={false}
+      onMainPhotoChange={setMainPhotoHash}
+      mutations={mutations}
       maxPhotos={10}
       attachableId={null}
+      isImmediateSyncMode={false}
+      syncPhotos={false}
     />
   );
 }
@@ -130,10 +159,10 @@ The component supports the **cloud direct upload** pattern:
 - Once all synced → submit main form
 - Best for: Edit forms, multi-field forms where user reviews before committing
 
-## 🎯 PhotoType Interface
+## 🎯 BlobType Interface
 
 ```typescript
-export interface PhotoType {
+export interface BlobType {
   errorMessage: string | null;
   key: string | null;              // S3/cloud key
   name: string | null;              // Original filename
@@ -141,24 +170,32 @@ export interface PhotoType {
   previewUrl: string | null;        // CDN preview URL
   mimeType: string | null;          // e.g., 'image/jpeg'
   size: number | null;              // File size in bytes
-  checksum: string | null;          // SHA-256 hash
+  checksum: string | null;          // SHA-256 hash (also called 'hash')
   attachmentId: number | null;      // DB attachment ID
   blobId: number | null;            // DB blob ID
-  state:                            // 14-state lifecycle
+  state:                            // 19-state lifecycle (14 + 5 failed states)
     | null
     | 'SELECTED_FOR_UPLOAD'
     | 'UPLOADING_URL_GENERATING'
     | 'UPLOADING_URL_GENERATED'
+    | 'UPLOADING_URL_GENERATION_FAILED'  // 🔴 User must retry
     | 'UPLOADING'
     | 'UPLOADED'
+    | 'UPLOAD_FAILED'                     // 🔴 User must retry
     | 'BLOB_CREATING'
     | 'BLOB_CREATED'
+    | 'BLOB_CREATION_FAILED'              // 🔴 User must retry
     | 'ATTACHING'
     | 'ATTACHED'
+    | 'ATTACHMENT_FAILED'                 // 🔴 User must retry
     | 'MARKED_FOR_DETACH'
     | 'DETACHING'
-    | 'DETACHED';
+    | 'DETACHED'
+    | 'DETACHMENT_FAILED';                // 🔴 User must retry
 }
+
+// PhotoType is alias for backward compatibility
+export type PhotoType = BlobType;
 ```
 
 ## 📖 API Reference
@@ -167,26 +204,44 @@ export interface PhotoType {
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `photos` | `PhotoType[]` | ✅ | Array of photo objects |
-| `mainPhotoHash` | `string \| null` | ✅ | Checksum of main photo |
-| `addPhoto` | `(photo: PhotoType) => void` | ✅ | Add photo to state |
-| `removePhotoByHash` | `(hash: string) => void` | ✅ | Remove photo by checksum |
-| `removePhotoByKey` | `(key: string) => void` | ✅ | Remove photo by cloud key |
-| `setMainPhotoHash` | `(hash: string) => void` | ✅ | Set main photo |
-| `resetMainPhotoHash` | `() => void` | ✅ | Clear main photo |
-| `setPhotoState` | `(hash: string, state: PhotoType['state']) => void` | ✅ | Update photo state |
-| `setPhotos` | `(photos: PhotoType[]) => void` | ✅ | Replace entire photos array |
-| `getUploadUrl` | `(hash: string) => void` | ✅ | Get presigned URL from API |
-| `directUpload` | `(hash: string, file: File) => void` | ✅ | Upload to cloud |
-| `createBlob` | `(hash: string) => void` | ✅ | Create blob record |
-| `createAttachment` | `(hash: string, id: number) => void` | ✅ | Link blob to entity |
-| `getPreviewUrl` | `(hash: string) => void` | ✅ | Get CDN preview URL |
-| `deleteAttachment` | `(hash: string) => void` | ✅ | Delete attachment |
-| `isImmediateSyncMode` | `boolean` | ✅ | Operating mode |
-| `syncPhotos` | `boolean` | ✅ | Trigger batch sync |
-| `attachableId` | `number \| null` | ✅ | Entity ID to attach to |
-| `maxPhotos` | `number` | ❌ | Max photos (default: 10) |
-| `processRunning` | `boolean` | ❌ | Disable while saving |
+| `initialPhotos` | `PhotoType[]` | ❌ | Initial blobs (for editing) |
+| `onPhotosChange` | `(photos: PhotoType[]) => void` | ❌ | Callback when blobs change |
+| `mainPhotoHash` | `string \| null` | ❌ | Checksum of main blob |
+| `onMainPhotoChange` | `(hash: string \| null) => void` | ❌ | Callback when main blob changes |
+| `mutations` | `MutationCallbacks` | ✅ | **Required** - API mutation callbacks |
+| `attachableId` | `number \| null` | ✅ | **Required** - Entity ID to attach to |
+| `attachableType` | `string` | ❌ | Entity type (default: 'Offer') |
+| `isImmediateSyncMode` | `boolean` | ❌ | true = immediate upload (default: false) |
+| `syncPhotos` | `boolean` | ❌ | true = create attachments (default: false) |
+| `maxPhotos` | `number` | ❌ | Max blobs allowed (default: 10) |
+| `processRunning` | `boolean` | ❌ | Disable interactions while saving |
+| `styling` | `StylingProps` | ❌ | Custom CSS classes |
+
+### Mutation Callbacks (FLAT Result Structures)
+
+All mutations return flat structures with hash:
+
+```typescript
+interface MutationCallbacks {
+  getUploadUrl: (params: {hash, name, mimeType, size}) 
+    => Promise<{success: true, hash, uploadUrl, key} | {success: false, hash, error}>;
+    
+  directUpload: (params: {hash, uploadUrl, file}) 
+    => Promise<{success: true, hash} | {success: false, hash, error}>;
+    
+  createBlob: (params: {hash, key, name, mimeType, size}) 
+    => Promise<{success: true, hash, id, key, url} | {success: false, hash, error}>;
+    
+  createAttachment: (params: {hash, blobId, attachableId, attachableType}) 
+    => Promise<{success: true, hash, id} | {success: false, hash, error}>;
+    
+  deleteAttachment: (params: {hash, attachmentId}) 
+    => Promise<{success: true, hash} | {success: false, hash, error}>;
+    
+  getPreviewUrl: (params: {hash, key}) 
+    => Promise<{success: true, hash, previewUrl} | {success: false, hash, error}>;
+}
+```
 
 ## 💡 Usage Examples
 
@@ -244,81 +299,194 @@ function MyForm() {
 }
 ```
 
-## 🔧 Implementing Callbacks
+## 🔧 Implementing Mutation Callbacks
 
-You need to implement the 6 lifecycle callbacks for your specific backend:
+All mutation callbacks return **FLAT result structures** with hash included:
 
 ```tsx
-// 1. Get presigned S3 URL
-const getUploadUrl = async (hash: string) => {
-  const photo = photos.find(p => p.checksum === hash);
-  const res = await fetch('/api/upload-url', {
-    method: 'POST',
-    body: JSON.stringify({
-      filename: photo.name,
-      mimeType: photo.mimeType,
-      checksum: hash
-    })
-  });
-  const { uploadUrl, key } = await res.json();
-  // Update photo state with uploadUrl and key
-};
+import { MutationCallbacks } from 'react-blob-uploader';
 
-// 2. Upload directly to S3
-const directUpload = async (hash: string, file: File) => {
-  const photo = photos.find(p => p.checksum === hash);
-  await fetch(photo.uploadUrl, {
-    method: 'PUT',
-    body: file,
-    headers: { 'Content-Type': photo.mimeType }
-  });
-};
+const mutations: MutationCallbacks = {
+  // 1. Get presigned S3 URL - Returns flat {success, hash, uploadUrl, key}
+  getUploadUrl: async ({ hash, name, mimeType, size }) => {
+    try {
+      const res = await fetch('/api/upload-url', {
+        method: 'POST',
+        body: JSON.stringify({ checksum: hash, name, mimeType, size })
+      });
+      const data = await res.json();
+      
+      return {
+        success: true,
+        hash,
+        uploadUrl: data.uploadUrl,
+        key: data.key,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        hash,
+        error: error.message || 'Failed to get upload URL',
+      };
+    }
+  },
 
-// 3. Create blob record in database
-const createBlob = async (hash: string) => {
-  const photo = photos.find(p => p.checksum === hash);
-  const res = await fetch('/api/blobs', {
-    method: 'POST',
-    body: JSON.stringify({
-      key: photo.key,
-      filename: photo.name,
-      checksum: hash
-    })
-  });
-  const { id } = await res.json();
-  // Update photo state with blobId
-};
+  // 2. Upload directly to S3 - Returns flat {success, hash}
+  directUpload: async ({ hash, uploadUrl, file }) => {
+    try {
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type }
+      });
+      
+      return { success: true, hash };
+    } catch (error) {
+      return {
+        success: false,
+        hash,
+        error: error.message || 'Failed to upload file',
+      };
+    }
+  },
 
-// 4. Link blob to entity (e.g., Offer, Product)
-const createAttachment = async (hash: string, attachableId: number) => {
-  const photo = photos.find(p => p.checksum === hash);
-  const res = await fetch('/api/attachments', {
-    method: 'POST',
-    body: JSON.stringify({
-      blobId: photo.blobId,
-      attachableId,
-      attachableType: 'Offer' // or 'Product', 'User', etc.
-    })
-  });
-  const { id } = await res.json();
-  // Update photo state with attachmentId
-};
+  // 3. Create blob record - Returns flat {success, hash, id, key, url}
+  createBlob: async ({ hash, key, name, mimeType, size }) => {
+    try {
+      const res = await fetch('/api/blobs', {
+        method: 'POST',
+        body: JSON.stringify({ key, checksum: hash, name, mimeType, size })
+      });
+      const data = await res.json();
+      
+      return {
+        success: true,
+        hash,
+        id: data.id,
+        key: data.key,
+        url: data.url,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        hash,
+        error: error.message || 'Failed to create blob',
+      };
+    }
+  },
 
-// 5. Get CDN preview URL
-const getPreviewUrl = async (hash: string) => {
-  const photo = photos.find(p => p.checksum === hash);
-  const res = await fetch(`/api/blobs/${photo.blobId}/preview`);
-  const { previewUrl } = await res.json();
-  // Update photo state with previewUrl
-};
+  // 4. Link blob to entity - Returns flat {success, hash, id}
+  createAttachment: async ({ hash, blobId, attachableId, attachableType }) => {
+    try {
+      const res = await fetch('/api/attachments', {
+        method: 'POST',
+        body: JSON.stringify({ blobId, attachableId, attachableType })
+      });
+      const data = await res.json();
+      
+      return { success: true, hash, id: data.id };
+    } catch (error) {
+      return {
+        success: false,
+        hash,
+        error: error.message || 'Failed to create attachment',
+      };
+    }
+  },
 
-// 6. Delete attachment
-const deleteAttachment = async (hash: string) => {
-  const photo = photos.find(p => p.checksum === hash);
-  await fetch(`/api/attachments/${photo.attachmentId}`, {
-    method: 'DELETE'
-  });
+  // 5. Delete attachment - Returns flat {success, hash}
+  deleteAttachment: async ({ hash, attachmentId }) => {
+    try {
+      await fetch(`/api/attachments/${attachmentId}`, {
+        method: 'DELETE'
+      });
+      
+      return { success: true, hash };
+    } catch (error) {
+      return {
+        success: false,
+        hash,
+        error: error.message || 'Failed to delete attachment',
+      };
+    }
+  },
+
+  // 6. Get preview URL - Returns flat {success, hash, previewUrl}
+  getPreviewUrl: async ({ hash, key }) => {
+    return { success: true, hash, previewUrl: key };
+  },
 };
+```
+
+### **Key Points:**
+- ✅ All callbacks receive `hash` as first param
+- ✅ All callbacks return `hash` in result (success AND error)
+- ✅ All results are FLAT (no nested `data` object)
+- ✅ Component is isolated from your data structures
+
+## 🔁 Error Handling & Retry
+
+### **Failed States with Manual Retry**
+
+The component includes **5 terminal failed states** that prevent infinite loops:
+
+```typescript
+'UPLOADING_URL_GENERATION_FAILED'  // Failed to get upload URL
+'UPLOAD_FAILED'                     // Failed to upload to S3
+'BLOB_CREATION_FAILED'              // Failed to create blob record
+'ATTACHMENT_FAILED'                 // Failed to create attachment
+'DETACHMENT_FAILED'                 // Failed to delete attachment
+```
+
+**Why This Matters:**
+- ❌ **Without failed states:** Failure → Previous state → Auto-retry → Infinite loop
+- ✅ **With failed states:** Failure → FAILED state → Shows retry button → User controls retry
+
+### **Visual Feedback on Errors:**
+
+When a blob enters a failed state:
+- 🔴 **Red border** around the blob
+- 🔘 **Dimmed image** (50% opacity)
+- ⚠️ **Error message** displayed
+- 🔄 **Retry button** appears
+
+### **Retry Flow:**
+
+```typescript
+// User uploads file
+SELECTED_FOR_UPLOAD
+  ↓
+UPLOADING_URL_GENERATING
+  ↓ (API fails)
+UPLOADING_URL_GENERATION_FAILED ← STOPS HERE
+  ↓ (user clicks retry button)
+SELECTED_FOR_UPLOAD ← Restarts process
+  ↓
+... continues normally
+```
+
+### **How to Handle Errors:**
+
+```tsx
+// Your mutation callback
+getUploadUrl: async ({ hash, name, mimeType, size }) => {
+  try {
+    const response = await api.post('/upload-url', {...});
+    return {
+      success: true,
+      hash,
+      uploadUrl: response.data.uploadUrl,
+      key: response.data.key,
+    };
+  } catch (error) {
+    // Component will show retry button automatically
+    return {
+      success: false,
+      hash,
+      error: error.message || 'Failed to get upload URL',
+    };
+  }
+}
 ```
 
 ## 🎨 Styling
