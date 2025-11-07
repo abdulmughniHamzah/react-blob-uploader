@@ -4591,7 +4591,7 @@ function SortableBlob({ id, blob, filesMap, isImmediateSyncMode, attachableId, a
     return (jsx("div", { ref: setNodeRef, style: style, ...attributes, ...listeners, children: jsx(Blob, { isImmediateSyncMode: isImmediateSyncMode, attachableId: attachableId, attachableType: attachableType, file: filesMap.get(blob.checksum ?? ''), blob: blob, mainBlobHash: mainBlobHash ?? null, setMainBlobHash: setMainBlobHash, deleteFromFilesMap: deleteFromFilesMap, removeBlobByHash: removeBlobByHash, resetMainBlobHash: resetMainBlobHash, syncBlobs: syncBlobs, mutations: mutations, stateSetters: stateSetters, styling: styling }) }));
 }
 
-const defaultStyling = {
+const baseDefaultStyling = {
     containerClassName: `
     flex flex-wrap justify-start items-stretch
     gap-x-2 gap-y-4 lg:gap-x-4 lg:gap-y-6
@@ -4692,6 +4692,16 @@ const defaultStyling = {
     transition-colors duration-200
     cursor-pointer
   `.replace(/\s+/g, ' ').trim(),
+};
+const defaultStyling = {
+    ...baseDefaultStyling,
+    photoContainerClassName: baseDefaultStyling.blobContainerClassName,
+    photoImageClassName: baseDefaultStyling.blobImageClassName,
+    photoContainerFailedClassName: baseDefaultStyling.blobContainerFailedClassName,
+    photoImageFailedClassName: baseDefaultStyling.blobImageFailedClassName,
+    mainPhotoBadgeClassName: baseDefaultStyling.mainBlobBadgeClassName,
+    loadingClassName: baseDefaultStyling.loadingContainerClassName,
+    errorClassName: baseDefaultStyling.errorContainerClassName,
 };
 function mergeStyling(custom) {
     if (!custom)

@@ -75,7 +75,7 @@ export interface StylingProps {
  * These can be completely overridden by the consuming application
  * to match their theme (colors, sizing, spacing, etc.)
  */
-export const defaultStyling: Required<StylingProps> = {
+const baseDefaultStyling = {
   // Container for all blobs and upload button
   containerClassName: `
     flex flex-wrap justify-start items-stretch
@@ -205,6 +205,21 @@ export const defaultStyling: Required<StylingProps> = {
     transition-colors duration-200
     cursor-pointer
   `.replace(/\s+/g, ' ').trim(),
+};
+
+/**
+ * Export with backward compatibility aliases
+ */
+export const defaultStyling: Required<StylingProps> = {
+  ...baseDefaultStyling,
+  // Backward compatibility aliases (same as new props)
+  photoContainerClassName: baseDefaultStyling.blobContainerClassName,
+  photoImageClassName: baseDefaultStyling.blobImageClassName,
+  photoContainerFailedClassName: baseDefaultStyling.blobContainerFailedClassName,
+  photoImageFailedClassName: baseDefaultStyling.blobImageFailedClassName,
+  mainPhotoBadgeClassName: baseDefaultStyling.mainBlobBadgeClassName,
+  loadingClassName: baseDefaultStyling.loadingContainerClassName,
+  errorClassName: baseDefaultStyling.errorContainerClassName,
 };
 
 /**
