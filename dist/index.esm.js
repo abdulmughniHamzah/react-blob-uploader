@@ -4694,9 +4694,16 @@ const defaultStyling = {
   `.replace(/\s+/g, ' ').trim(),
 };
 function mergeStyling(custom) {
+    if (!custom)
+        return defaultStyling;
     return {
         ...defaultStyling,
         ...custom,
+        blobContainerClassName: custom.blobContainerClassName || custom.photoContainerClassName || defaultStyling.blobContainerClassName,
+        blobImageClassName: custom.blobImageClassName || custom.photoImageClassName || defaultStyling.blobImageClassName,
+        mainBlobBadgeClassName: custom.mainBlobBadgeClassName || custom.mainPhotoBadgeClassName || defaultStyling.mainBlobBadgeClassName,
+        loadingContainerClassName: custom.loadingContainerClassName || custom.loadingClassName || defaultStyling.loadingContainerClassName,
+        errorContainerClassName: custom.errorContainerClassName || custom.errorClassName || defaultStyling.errorContainerClassName,
     };
 }
 

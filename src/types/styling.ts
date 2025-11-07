@@ -16,9 +16,13 @@ export interface StylingProps {
   
   /** Individual blob container classes */
   blobContainerClassName?: string;
+  /** @deprecated Use blobContainerClassName */
+  photoContainerClassName?: string;
   
   /** Blob image classes */
   blobImageClassName?: string;
+  /** @deprecated Use blobImageClassName */
+  photoImageClassName?: string;
   
   /** Blob container when in failed state */
   blobContainerFailedClassName?: string;
@@ -31,18 +35,24 @@ export interface StylingProps {
   
   /** Main blob badge classes */
   mainBlobBadgeClassName?: string;
+  /** @deprecated Use mainBlobBadgeClassName */
+  mainPhotoBadgeClassName?: string;
   
   /** Set as main button classes */
   setMainButtonClassName?: string;
   
   /** Loading spinner container classes */
   loadingContainerClassName?: string;
+  /** @deprecated Use loadingContainerClassName */
+  loadingClassName?: string;
   
   /** Loading spinner icon classes */
   loadingSpinnerClassName?: string;
   
   /** Error container classes */
   errorContainerClassName?: string;
+  /** @deprecated Use errorContainerClassName */
+  errorClassName?: string;
   
   /** Error message text classes */
   errorMessageClassName?: string;
@@ -195,11 +205,20 @@ export const defaultStyling: Required<StylingProps> = {
 
 /**
  * Merge custom styling with defaults
+ * Supports both old (photo*) and new (blob*) prop names for backward compatibility
  */
 export function mergeStyling(custom?: StylingProps): Required<StylingProps> {
+  if (!custom) return defaultStyling;
+  
   return {
     ...defaultStyling,
     ...custom,
+    // Backward compatibility: old names override new names
+    blobContainerClassName: custom.blobContainerClassName || custom.photoContainerClassName || defaultStyling.blobContainerClassName,
+    blobImageClassName: custom.blobImageClassName || custom.photoImageClassName || defaultStyling.blobImageClassName,
+    mainBlobBadgeClassName: custom.mainBlobBadgeClassName || custom.mainPhotoBadgeClassName || defaultStyling.mainBlobBadgeClassName,
+    loadingContainerClassName: custom.loadingContainerClassName || custom.loadingClassName || defaultStyling.loadingContainerClassName,
+    errorContainerClassName: custom.errorContainerClassName || custom.errorClassName || defaultStyling.errorContainerClassName,
   };
 }
 
