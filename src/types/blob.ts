@@ -1,4 +1,8 @@
-export interface PhotoType {
+/**
+ * BlobType represents a file (image, document, video, etc.) in various stages of upload/attachment
+ * This is the core type for the file uploader component
+ */
+export interface BlobType {
   errorMessage: string | null;
   key: string | null;
   name: string | null;
@@ -24,3 +28,8 @@ export interface PhotoType {
     | 'DETACHING'
     | 'DETACHED';
 }
+
+/**
+ * @deprecated Use BlobType instead. PhotoType is kept for backward compatibility.
+ */
+export type PhotoType = BlobType;

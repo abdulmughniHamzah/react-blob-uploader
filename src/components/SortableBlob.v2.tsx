@@ -1,28 +1,46 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import Photo from './Photo';
+import Blob, { BlobStateSetters } from './Blob.v2';
+import { BlobType } from '../types/blob';
+import { StylingProps } from '../types/styling';
+import { MutationCallbacks } from '../types/mutations';
 
-function SortablePhoto({
+interface SortableBlobProps {
+  id: string;
+  blob: BlobType;
+  filesMap: Map<string, File>;
+  isImmediateSyncMode: boolean;
+  attachableId: number | null;
+  attachableType: string;
+  mainBlobHash: string | null;
+  setMainBlobHash: (hash: string) => void;
+  deleteFromFilesMap: (hash: string) => void;
+  removeBlobByHash: (hash: string) => void;
+  resetMainBlobHash: () => void;
+  syncBlobs: boolean;
+  mutations: MutationCallbacks;
+  stateSetters: BlobStateSetters;
+  styling: Required<StylingProps>;
+}
+
+function SortableBlob({
   id,
   photo,
   filesMap,
   isImmediateSyncMode,
   attachableId,
+  attachableType,
   mainPhotoHash,
   setMainPhotoHash,
-  deleteAttachment,
   deleteFromFilesMap,
   removePhotoByHash,
-  getUploadUrl,
-  getPreviewUrl,
-  directUpload,
-  createBlob,
-  createAttachment,
   resetMainPhotoHash,
   syncPhotos,
-  setPhotoState,
-}: any) {
+  mutations,
+  stateSetters,
+  styling,
+}: SortableBlobProps) {
   const {
     attributes,
     listeners,
@@ -45,29 +63,26 @@ function SortablePhoto({
       style={style}
       {...attributes}
       {...listeners}
-      className='w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] md:w-[120px] md:h-[120px] lg:w-[140px] lg:h-[140px]'
     >
-      <Photo
+      <Blob
         isImmediateSyncMode={isImmediateSyncMode}
         attachableId={attachableId}
+        attachableType={attachableType}
         file={filesMap.get(photo.checksum ?? '')}
         photo={photo}
         mainPhotoHash={mainPhotoHash ?? null}
         setMainPhotoHash={setMainPhotoHash}
-        deleteAttachment={deleteAttachment}
         deleteFromFilesMap={deleteFromFilesMap}
         removePhotoByHash={removePhotoByHash}
-        getUploadUrl={getUploadUrl}
-        getPreviewUrl={getPreviewUrl}
-        directUpload={directUpload}
-        createBlob={createBlob}
-        createAttachment={createAttachment}
         resetMainPhotoHash={resetMainPhotoHash}
         syncPhotos={syncPhotos}
-        setPhotoState={setPhotoState}
+        mutations={mutations}
+        stateSetters={stateSetters}
+        styling={styling}
       />
     </div>
   );
 }
 
-export default SortablePhoto;
+export default SortableBlob;
+

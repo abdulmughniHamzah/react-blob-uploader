@@ -1,23 +1,29 @@
-import { PhotoType } from '../types/photo';
+import { PhotoType } from '../types/blob';
 import { StylingProps } from '../types/styling';
+import { MutationCallbacks } from '../types/mutations';
+export interface PhotoStateSetters {
+    setPhotoState: (hash: string, state: PhotoType['state']) => void;
+    setPhotoUploadUrl: (hash: string, uploadUrl: string) => void;
+    setPhotoKey: (hash: string, key: string) => void;
+    setPhotoBlobId: (hash: string, blobId: number) => void;
+    setPhotoPreviewUrl: (hash: string, previewUrl: string) => void;
+    setPhotoAttachmentId: (hash: string, attachmentId: number) => void;
+    setPhotoErrorMessage: (hash: string, errorMessage: string | null) => void;
+}
 interface PhotoProps {
     isImmediateSyncMode: boolean;
     photo: PhotoType;
     attachableId: number | null;
+    attachableType: string;
     file?: File;
     mainPhotoHash: string | null;
     setMainPhotoHash: (hash: string) => void;
     deleteFromFilesMap: (hash: string) => void;
-    getUploadUrl: (hash: string) => void;
-    getPreviewUrl: (hash: string) => void;
-    directUpload: (hash: string, file: File) => void;
-    createBlob: (hash: string) => void;
-    createAttachment: (hash: string, attachableId: number) => void;
     removePhotoByHash: (hash: string) => void;
-    deleteAttachment: (hash: string) => void;
     resetMainPhotoHash: () => void;
-    setPhotoState: (hash: string, state: PhotoType['state']) => void;
     syncPhotos: boolean;
+    mutations: MutationCallbacks;
+    stateSetters: PhotoStateSetters;
     styling: Required<StylingProps>;
 }
 declare const Photo: React.FC<PhotoProps>;

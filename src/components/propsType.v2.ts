@@ -1,4 +1,4 @@
-import { PhotoType } from '../types/photo';
+import { BlobType } from '../types/blob';
 import { MutationCallbacks } from '../types/mutations';
 import { StylingProps } from '../types/styling';
 
@@ -15,20 +15,22 @@ type SkeletonPropsType = {
  * ARCHITECTURE: Self-contained component with internal state management
  * - Component manages photo states internally
  * - Parent provides mutation callbacks (API calls)
- * - Parent reads final state via onPhotosChange callback
+ * - Parent reads final state via onBlobsChange callback
  */
 export type LoadedPropsType = {
   skeleton?: false;
   
   // ===== CORE CONFIGURATION =====
   /**
-   * Maximum number of photos allowed
+   * Maximum number of blobs/files allowed
    * @default 10
    */
+  maxBlobs?: number;
+  /** @deprecated Use maxBlobs instead */
   maxPhotos?: number;
   
   /**
-   * Entity ID to attach photos to (e.g., Offer ID, Product ID)
+   * Entity ID to attach blobs to (e.g., Offer ID, Product ID)
    * Required for attachment creation
    */
   attachableId: number | null;
@@ -45,14 +47,16 @@ export type LoadedPropsType = {
    * - true: Create attachments immediately after blob creation
    * - false: Stop at BLOB_CREATED state (manual sync later)
    * 
-   * Check sync completion: all photos are either ATTACHED or (BLOB_CREATED && !syncPhotos)
+   * Check sync completion: all blobs are either ATTACHED or (BLOB_CREATED && !syncBlobs)
    */
-  syncPhotos: boolean;
+  syncBlobs?: boolean;
+  /** @deprecated Use syncBlobs instead */
+  syncPhotos?: boolean;
   
   /**
    * Legacy mode flag (for backward compatibility)
-   * - true: Photos sync immediately on upload
-   * - false: Photos sync only when syncPhotos is true
+   * - true: Blobs sync immediately on upload
+   * - false: Blobs sync only when syncBlobs is true
    * @default false
    */
   isImmediateSyncMode?: boolean;
@@ -65,25 +69,33 @@ export type LoadedPropsType = {
   
   // ===== STATE MANAGEMENT =====
   /**
-   * Initial photos state (for editing existing entities)
+   * Initial blobs state (for editing existing entities)
    * Component manages this internally after initialization
    */
-  initialPhotos?: PhotoType[];
+  initialBlobs?: BlobType[];
+  /** @deprecated Use initialBlobs instead */
+  initialPhotos?: BlobType[];
   
   /**
-   * Callback when photos state changes
+   * Callback when blobs state changes
    * Parent reads final state through this callback
    */
-  onPhotosChange?: (photos: PhotoType[]) => void;
+  onBlobsChange?: (blobs: BlobType[]) => void;
+  /** @deprecated Use onBlobsChange instead */
+  onPhotosChange?: (photos: BlobType[]) => void;
   
   /**
-   * Main photo checksum (for marking featured image)
+   * Main blob checksum (for marking featured image)
    */
+  mainBlobHash?: string | null;
+  /** @deprecated Use mainBlobHash instead */
   mainPhotoHash?: string | null;
   
   /**
-   * Callback when main photo changes
+   * Callback when main blob changes
    */
+  onMainBlobChange?: (checksum: string | null) => void;
+  /** @deprecated Use onMainBlobChange instead */
   onMainPhotoChange?: (checksum: string | null) => void;
   
   // ===== MUTATION CALLBACKS =====
@@ -102,14 +114,14 @@ export type LoadedPropsType = {
   
   // ===== LEGACY PROPS (Deprecated - for backward compatibility) =====
   /**
-   * @deprecated Use initialPhotos instead
+   * @deprecated Use initialBlobs instead
    */
-  photos?: PhotoType[];
+  photos?: BlobType[];
   
   /**
    * @deprecated Managed internally now
    */
-  addPhoto?: (photo: PhotoType) => void;
+  addPhoto?: (photo: BlobType) => void;
   
   /**
    * @deprecated Managed internally now
@@ -122,9 +134,19 @@ export type LoadedPropsType = {
   removePhotoByKey?: (key: string) => void;
   
   /**
-   * @deprecated Use onMainPhotoChange instead
+   * @deprecated Use onMainBlobChange instead
+   */
+  setMainBlobHash?: (hash: string) => void;
+  
+  /**
+   * @deprecated Use onMainBlobChange instead
    */
   setMainPhotoHash?: (hash: string) => void;
+  
+  /**
+   * @deprecated Use onMainBlobChange instead
+   */
+  resetMainPhotoHash?: () => void;
   
   /**
    * @deprecated Use mutations.getUploadUrl instead
@@ -159,17 +181,17 @@ export type LoadedPropsType = {
   /**
    * @deprecated Managed internally now
    */
-  resetMainPhotoHash?: () => void;
+  resetMainBlobHash?: () => void;
   
   /**
    * @deprecated Managed internally now
    */
-  setPhotoState?: (hash: string, state: PhotoType['state']) => void;
+  setPhotoState?: (hash: string, state: BlobType['state']) => void;
   
   /**
    * @deprecated Managed internally now
    */
-  setPhotos?: (photos: PhotoType[]) => void;
+  setPhotos?: (photos: BlobType[]) => void;
 };
 
 type PropsType = SkeletonPropsType | LoadedPropsType;

@@ -4400,18 +4400,18 @@ const X = createLucideIcon("X", [
   ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
 ]);
 
-const Photo$1 = ({ isImmediateSyncMode, attachableId, file, photo, mainPhotoHash, setMainPhotoHash, deleteFromFilesMap, getUploadUrl, getPreviewUrl, directUpload, createBlob, createAttachment, removePhotoByHash, deleteAttachment, resetMainPhotoHash, setPhotoState, syncPhotos, styling, }) => {
+const Blob = ({ isImmediateSyncMode, attachableId, attachableType, file, photo, mainPhotoHash, setMainPhotoHash, deleteFromFilesMap, removePhotoByHash, resetMainPhotoHash, syncPhotos, mutations, stateSetters, styling, }) => {
     const handleRemovePhoto = () => {
         if (photo.state === 'ATTACHED') {
             if (syncPhotos) {
-                setPhotoState(photo.checksum, 'MARKED_FOR_DETACH');
+                stateSetters.setPhotoState(photo.checksum, 'MARKED_FOR_DETACH');
             }
             else {
-                setPhotoState(photo.checksum, 'DETACHED');
+                stateSetters.setPhotoState(photo.checksum, 'DETACHED');
             }
         }
         else {
-            setPhotoState(photo.checksum, 'DETACHED');
+            stateSetters.setPhotoState(photo.checksum, 'DETACHED');
         }
     };
     const unlinkPhoto = () => {
@@ -4422,38 +4422,123 @@ const Photo$1 = ({ isImmediateSyncMode, attachableId, file, photo, mainPhotoHash
         }
     };
     React.useEffect(() => {
-        switch (photo.state) {
-            case 'SELECTED_FOR_UPLOAD':
-                if (syncPhotos)
-                    getUploadUrl(photo.checksum);
-                break;
-            case 'UPLOADING_URL_GENERATED':
-                if (file)
-                    directUpload(photo.checksum, file);
-                break;
-            case 'UPLOADED':
-                if (photo.key && photo.name)
-                    createBlob(photo.checksum);
-                break;
-            case 'BLOB_CREATED':
-                if (syncPhotos && attachableId && photo.blobId && !photo.errorMessage) {
-                    createAttachment(photo.checksum, attachableId);
-                }
-                break;
-            case 'ATTACHED':
-                if (!photo.previewUrl)
-                    getPreviewUrl(photo.checksum);
-                break;
-            case 'DETACHED':
-                unlinkPhoto();
-                break;
-            case 'MARKED_FOR_DETACH':
-                if (syncPhotos)
-                    deleteAttachment(photo.checksum);
-                break;
-        }
-    }, [file, attachableId, syncPhotos, photo.state, photo.previewUrl, photo.errorMessage]);
-    if ((!isImmediateSyncMode && photo.state === 'DETACHING') ||
+        const handleStateTransition = async () => {
+            if (!photo.checksum)
+                return;
+            const hash = photo.checksum;
+            switch (photo.state) {
+                case 'SELECTED_FOR_UPLOAD':
+                    if (syncPhotos && photo.name && photo.mimeType && photo.size) {
+                        stateSetters.setPhotoState(hash, 'UPLOADING_URL_GENERATING');
+                        const result = await mutations.getUploadUrl({
+                            checksum: hash,
+                            name: photo.name,
+                            mimeType: photo.mimeType,
+                            size: photo.size,
+                        });
+                        if (result.success) {
+                            stateSetters.setPhotoUploadUrl(hash, result.data.uploadUrl);
+                            stateSetters.setPhotoKey(hash, result.data.key);
+                            stateSetters.setBlobErrorMessage(hash, null);
+                            stateSetters.setPhotoState(hash, 'UPLOADING_URL_GENERATED');
+                        }
+                        else {
+                            stateSetters.setBlobErrorMessage(hash, result.error);
+                            stateSetters.setPhotoState(hash, 'SELECTED_FOR_UPLOAD');
+                        }
+                    }
+                    break;
+                case 'UPLOADING_URL_GENERATED':
+                    if (file && photo.uploadUrl) {
+                        stateSetters.setPhotoState(hash, 'UPLOADING');
+                        const result = await mutations.directUpload(photo.uploadUrl, file);
+                        if (result.success) {
+                            stateSetters.setBlobErrorMessage(hash, null);
+                            stateSetters.setPhotoState(hash, 'UPLOADED');
+                        }
+                        else {
+                            stateSetters.setBlobErrorMessage(hash, result.error);
+                            stateSetters.setPhotoState(hash, 'UPLOADING_URL_GENERATED');
+                        }
+                    }
+                    break;
+                case 'UPLOADED':
+                    if (photo.key && photo.name && photo.mimeType && photo.size) {
+                        stateSetters.setPhotoState(hash, 'BLOB_CREATING');
+                        const result = await mutations.createBlob({
+                            key: photo.key,
+                            checksum: hash,
+                            name: photo.name,
+                            mimeType: photo.mimeType,
+                            size: photo.size,
+                        });
+                        if (result.success) {
+                            stateSetters.setPhotoBlobId(hash, result.data.id);
+                            stateSetters.setPhotoKey(hash, result.data.key);
+                            stateSetters.setPhotoPreviewUrl(hash, result.data.url);
+                            stateSetters.setBlobErrorMessage(hash, null);
+                            stateSetters.setPhotoState(hash, 'BLOB_CREATED');
+                        }
+                        else {
+                            stateSetters.setBlobErrorMessage(hash, result.error);
+                            stateSetters.setPhotoState(hash, 'UPLOADED');
+                        }
+                    }
+                    break;
+                case 'BLOB_CREATED':
+                    if (isImmediateSyncMode && attachableId && photo.blobId && !photo.errorMessage) {
+                        stateSetters.setPhotoState(hash, 'ATTACHING');
+                        const result = await mutations.createAttachment({
+                            blobId: photo.blobId,
+                            attachableId,
+                            attachableType,
+                        });
+                        if (result.success) {
+                            stateSetters.setPhotoAttachmentId(hash, result.data.id);
+                            stateSetters.setBlobErrorMessage(hash, null);
+                            stateSetters.setPhotoState(hash, 'ATTACHED');
+                        }
+                        else {
+                            stateSetters.setBlobErrorMessage(hash, result.error);
+                            stateSetters.setPhotoState(hash, 'BLOB_CREATED');
+                        }
+                    }
+                    break;
+                case 'ATTACHED':
+                    break;
+                case 'DETACHED':
+                    unlinkPhoto();
+                    break;
+                case 'MARKED_FOR_DETACH':
+                    if (syncPhotos && photo.attachmentId) {
+                        stateSetters.setPhotoState(hash, 'DETACHING');
+                        const result = await mutations.deleteAttachment(photo.attachmentId);
+                        if (result.success) {
+                            stateSetters.setBlobErrorMessage(hash, null);
+                            stateSetters.setPhotoState(hash, 'DETACHED');
+                        }
+                        else {
+                            stateSetters.setBlobErrorMessage(hash, result.error);
+                            stateSetters.setPhotoState(hash, 'MARKED_FOR_DETACH');
+                        }
+                    }
+                    break;
+            }
+        };
+        handleStateTransition();
+    }, [
+        file,
+        attachableId,
+        attachableType,
+        syncPhotos,
+        isImmediateSyncMode,
+        photo.state,
+        photo.checksum,
+        photo.errorMessage,
+        stateSetters,
+        mutations,
+    ]);
+    if ((!syncPhotos && photo.state === 'DETACHING') ||
         ['DETACHED', 'MARKED_FOR_DETACH'].includes(photo.state ?? '')) {
         return null;
     }
@@ -4472,7 +4557,7 @@ const Photo$1 = ({ isImmediateSyncMode, attachableId, file, photo, mainPhotoHash
           `.replace(/\s+/g, ' ').trim(), title: 'Set as main photo', children: "Set Main" }))] }));
 };
 
-function SortablePhoto$1({ id, photo, filesMap, isImmediateSyncMode, attachableId, mainPhotoHash, setMainPhotoHash, deleteAttachment, deleteFromFilesMap, removePhotoByHash, getUploadUrl, getPreviewUrl, directUpload, createBlob, createAttachment, resetMainPhotoHash, syncPhotos, setPhotoState, styling, }) {
+function SortableBlob({ id, photo, filesMap, isImmediateSyncMode, attachableId, attachableType, mainPhotoHash, setMainPhotoHash, deleteFromFilesMap, removePhotoByHash, resetMainPhotoHash, syncPhotos, mutations, stateSetters, styling, }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging, } = useSortable({ id });
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -4480,7 +4565,7 @@ function SortablePhoto$1({ id, photo, filesMap, isImmediateSyncMode, attachableI
         zIndex: isDragging ? 999 : undefined,
         opacity: isDragging ? 0.5 : 1,
     };
-    return (jsxRuntime.jsx("div", { ref: setNodeRef, style: style, ...attributes, ...listeners, children: jsxRuntime.jsx(Photo$1, { isImmediateSyncMode: isImmediateSyncMode, attachableId: attachableId, file: filesMap.get(photo.checksum ?? ''), photo: photo, mainPhotoHash: mainPhotoHash ?? null, setMainPhotoHash: setMainPhotoHash, deleteAttachment: deleteAttachment, deleteFromFilesMap: deleteFromFilesMap, removePhotoByHash: removePhotoByHash, getUploadUrl: getUploadUrl, getPreviewUrl: getPreviewUrl, directUpload: directUpload, createBlob: createBlob, createAttachment: createAttachment, resetMainPhotoHash: resetMainPhotoHash, syncPhotos: syncPhotos, setPhotoState: setPhotoState, styling: styling }) }));
+    return (jsxRuntime.jsx("div", { ref: setNodeRef, style: style, ...attributes, ...listeners, children: jsxRuntime.jsx(Blob, { isImmediateSyncMode: isImmediateSyncMode, attachableId: attachableId, attachableType: attachableType, file: filesMap.get(photo.checksum ?? ''), photo: photo, mainPhotoHash: mainPhotoHash ?? null, setMainPhotoHash: setMainPhotoHash, deleteFromFilesMap: deleteFromFilesMap, removePhotoByHash: removePhotoByHash, resetMainPhotoHash: resetMainPhotoHash, syncPhotos: syncPhotos, mutations: mutations, stateSetters: stateSetters, styling: styling }) }));
 }
 
 const defaultStyling = {
@@ -4547,32 +4632,38 @@ function mergeStyling(custom) {
     };
 }
 
-const Uploader$1 = ({ isImmediateSyncMode = false, maxPhotos = 10, syncPhotos, initialPhotos = [], onPhotosChange, attachableId, attachableType = 'Offer', processRunning = false, mainPhotoHash: externalMainPhotoHash, onMainPhotoChange, mutations, styling: customStyling, photos: legacyPhotos, addPhoto: legacyAddPhoto, removePhotoByHash: legacyRemovePhotoByHash, setMainPhotoHash: legacySetMainPhotoHash, getUploadUrl: legacyGetUploadUrl, getPreviewUrl: legacyGetPreviewUrl, directUpload: legacyDirectUpload, createBlob: legacyCreateBlob, createAttachment: legacyCreateAttachment, deleteAttachment: legacyDeleteAttachment, resetMainPhotoHash: legacyResetMainPhotoHash, setPhotoState: legacySetPhotoState, setPhotos: legacySetPhotos, }) => {
-    const [photos, setPhotos] = React.useState(initialPhotos || legacyPhotos || []);
+const Uploader = ({ isImmediateSyncMode = false, maxBlobs, maxPhotos, syncBlobs, syncPhotos, initialBlobs, initialPhotos, onBlobsChange, onPhotosChange, attachableId, attachableType = 'Offer', processRunning = false, mainBlobHash: externalMainBlobHash, mainPhotoHash: externalMainPhotoHash_legacy, onMainBlobChange, onMainPhotoChange, mutations, stateSetters: externalStateSetters, styling: customStyling, photos: legacyPhotos, addPhoto: legacyAddPhoto, removePhotoByHash: legacyRemovePhotoByHash, setMainPhotoHash: legacySetMainPhotoHash, getUploadUrl: legacyGetUploadUrl, getPreviewUrl: legacyGetPreviewUrl, directUpload: legacyDirectUpload, createBlob: legacyCreateBlob, createAttachment: legacyCreateAttachment, deleteAttachment: legacyDeleteAttachment, resetMainPhotoHash: legacyResetMainPhotoHash, setPhotoState: legacySetPhotoState, setPhotos: legacySetPhotos, }) => {
+    const maxItems = maxBlobs ?? maxPhotos ?? 10;
+    const shouldSyncBlobs = syncBlobs ?? syncPhotos ?? false;
+    const initialItems = initialBlobs ?? initialPhotos ?? legacyPhotos ?? [];
+    const externalMain = externalMainBlobHash ?? externalMainPhotoHash_legacy ?? null;
+    const onItemsChange = onBlobsChange ?? onPhotosChange;
+    const onMainChange = onMainBlobChange ?? onMainPhotoChange;
+    const [blobs, setBlobs] = React.useState(initialItems);
     const [filesMap, setFilesMap] = React.useState(new Map());
-    const [mainPhotoHash, setMainPhotoHash] = React.useState(externalMainPhotoHash || null);
+    const [mainBlobHash, setMainBlobHash] = React.useState(externalMain);
     const styling = React.useMemo(() => mergeStyling(customStyling), [customStyling]);
     React.useEffect(() => {
-        onPhotosChange?.(photos);
-    }, [photos, onPhotosChange]);
+        onItemsChange?.(blobs);
+    }, [blobs, onItemsChange]);
     React.useEffect(() => {
-        onMainPhotoChange?.(mainPhotoHash);
-    }, [mainPhotoHash, onMainPhotoChange]);
-    const updatePhotoState = React.useCallback((checksum, updates) => {
-        setPhotos(prev => prev.map(p => p.checksum === checksum ? { ...p, ...updates } : p));
+        onMainChange?.(mainBlobHash);
+    }, [mainBlobHash, onMainChange]);
+    const updateBlobState = React.useCallback((checksum, updates) => {
+        setBlobs(prev => prev.map(p => p.checksum === checksum ? { ...p, ...updates } : p));
     }, []);
-    const addPhoto = React.useCallback((photo) => {
-        setPhotos(prev => [...prev, photo]);
-        legacyAddPhoto?.(photo);
+    const addBlob = React.useCallback((blob) => {
+        setBlobs(prev => [...prev, blob]);
+        legacyAddPhoto?.(blob);
     }, [legacyAddPhoto]);
-    const removePhotoByHash = React.useCallback((checksum) => {
-        setPhotos(prev => prev.filter(p => p.checksum !== checksum));
-        if (mainPhotoHash === checksum) {
-            setMainPhotoHash(null);
+    React.useCallback((checksum) => {
+        setBlobs(prev => prev.filter(p => p.checksum !== checksum));
+        if (mainBlobHash === checksum) {
+            setMainBlobHash(null);
         }
         legacyRemovePhotoByHash?.(checksum);
-    }, [mainPhotoHash, legacyRemovePhotoByHash]);
-    const deleteFromFilesMap = React.useCallback((checksum) => {
+    }, [mainBlobHash, legacyRemovePhotoByHash]);
+    React.useCallback((checksum) => {
         setFilesMap(prev => {
             const newMap = new Map(prev);
             newMap.delete(checksum);
@@ -4583,10 +4674,10 @@ const Uploader$1 = ({ isImmediateSyncMode = false, maxPhotos = 10, syncPhotos, i
         if (!fileList)
             return;
         const files = Array.from(fileList);
-        const validFiles = files.slice(0, maxPhotos - photos.length);
+        const validFiles = files.slice(0, maxItems - blobs.length);
         for (const file of validFiles) {
             const checksum = await calculateChecksum(file);
-            if (photos.some((photo) => photo.checksum === checksum)) {
+            if (blobs.some((blob) => blob.checksum === checksum)) {
                 continue;
             }
             setFilesMap(prev => {
@@ -4594,7 +4685,7 @@ const Uploader$1 = ({ isImmediateSyncMode = false, maxPhotos = 10, syncPhotos, i
                 newMap.set(checksum, file);
                 return newMap;
             });
-            const newPhoto = {
+            const newBlob = {
                 attachmentId: null,
                 blobId: null,
                 key: null,
@@ -4607,10 +4698,10 @@ const Uploader$1 = ({ isImmediateSyncMode = false, maxPhotos = 10, syncPhotos, i
                 state: 'SELECTED_FOR_UPLOAD',
                 errorMessage: null,
             };
-            addPhoto(newPhoto);
+            addBlob(newBlob);
         }
-    }, [maxPhotos, photos, addPhoto]);
-    const wrappedGetUploadUrl = React.useCallback(async (checksum) => {
+    }, [maxItems, blobs, addBlob]);
+    React.useCallback(async (checksum) => {
         const photo = photos.find(p => p.checksum === checksum);
         if (!photo)
             return;
@@ -4635,7 +4726,7 @@ const Uploader$1 = ({ isImmediateSyncMode = false, maxPhotos = 10, syncPhotos, i
             });
         }
     }, [photos, mutations, updatePhotoState]);
-    const wrappedDirectUpload = React.useCallback(async (checksum, file) => {
+    React.useCallback(async (checksum, file) => {
         const photo = photos.find(p => p.checksum === checksum);
         if (!photo || !photo.uploadUrl)
             return;
@@ -4651,7 +4742,7 @@ const Uploader$1 = ({ isImmediateSyncMode = false, maxPhotos = 10, syncPhotos, i
             });
         }
     }, [photos, mutations, updatePhotoState]);
-    const wrappedCreateBlob = React.useCallback(async (checksum) => {
+    React.useCallback(async (checksum) => {
         const photo = photos.find(p => p.checksum === checksum);
         if (!photo || !photo.key)
             return;
@@ -4676,7 +4767,7 @@ const Uploader$1 = ({ isImmediateSyncMode = false, maxPhotos = 10, syncPhotos, i
             });
         }
     }, [photos, mutations, updatePhotoState]);
-    const wrappedCreateAttachment = React.useCallback(async (checksum, attId) => {
+    React.useCallback(async (checksum, attId) => {
         const photo = photos.find(p => p.checksum === checksum);
         if (!photo || !photo.blobId)
             return;
@@ -4699,7 +4790,7 @@ const Uploader$1 = ({ isImmediateSyncMode = false, maxPhotos = 10, syncPhotos, i
             });
         }
     }, [photos, mutations, attachableType, updatePhotoState]);
-    const wrappedDeleteAttachment = React.useCallback(async (checksum) => {
+    React.useCallback(async (checksum) => {
         const photo = photos.find(p => p.checksum === checksum);
         if (!photo || !photo.attachmentId)
             return;
@@ -4715,7 +4806,7 @@ const Uploader$1 = ({ isImmediateSyncMode = false, maxPhotos = 10, syncPhotos, i
             });
         }
     }, [photos, mutations, updatePhotoState]);
-    const wrappedGetPreviewUrl = React.useCallback(async (checksum) => {
+    React.useCallback(async (checksum) => {
         const photo = photos.find(p => p.checksum === checksum);
         if (!photo || !photo.key)
             return;
@@ -4726,7 +4817,30 @@ const Uploader$1 = ({ isImmediateSyncMode = false, maxPhotos = 10, syncPhotos, i
         catch (error) {
             console.error('Failed to get preview URL:', error);
         }
-    }, [photos, mutations, updatePhotoState]);
+    }, [blobs, mutations, updateBlobState]);
+    const stateSetters = React.useMemo(() => ({
+        setBlobState: (hash, state) => {
+            updateBlobState(hash, { state });
+        },
+        setBlobUploadUrl: (hash, uploadUrl) => {
+            updateBlobState(hash, { uploadUrl });
+        },
+        setBlobKey: (hash, key) => {
+            updateBlobState(hash, { key });
+        },
+        setBlobId: (hash, blobId) => {
+            updateBlobState(hash, { blobId });
+        },
+        setBlobPreviewUrl: (hash, previewUrl) => {
+            updateBlobState(hash, { previewUrl });
+        },
+        setBlobAttachmentId: (hash, attachmentId) => {
+            updateBlobState(hash, { attachmentId });
+        },
+        setBlobErrorMessage: (hash, errorMessage) => {
+            updateBlobState(hash, { errorMessage });
+        },
+    }), [updateBlobState]);
     const sensors = useSensors(useSensor(PointerSensor, {
         activationConstraint: {
             distance: 5,
@@ -4735,182 +4849,35 @@ const Uploader$1 = ({ isImmediateSyncMode = false, maxPhotos = 10, syncPhotos, i
     const handleDragEnd = React.useCallback((event) => {
         const { active, over } = event;
         if (active.id !== over?.id) {
-            setPhotos(prev => {
+            setBlobs(prev => {
                 const oldIndex = prev.findIndex((p) => p.checksum === active.id);
                 const newIndex = prev.findIndex((p) => p.checksum === over.id);
                 return arrayMove(prev, oldIndex, newIndex);
             });
         }
     }, []);
-    const handleSetMainPhotoHash = React.useCallback((checksum) => {
-        setMainPhotoHash(checksum);
+    React.useCallback((checksum) => {
+        setMainBlobHash(checksum);
         legacySetMainPhotoHash?.(checksum);
     }, [legacySetMainPhotoHash]);
-    const handleResetMainPhotoHash = React.useCallback(() => {
-        setMainPhotoHash(null);
+    React.useCallback(() => {
+        setMainBlobHash(null);
         legacyResetMainPhotoHash?.();
     }, [legacyResetMainPhotoHash]);
-    return (jsxRuntime.jsx(DndContext, { sensors: sensors, collisionDetection: closestCenter, onDragEnd: handleDragEnd, children: jsxRuntime.jsx(SortableContext, { items: photos.map((photo) => photo.checksum ?? ''), strategy: rectSortingStrategy, children: jsxRuntime.jsxs("div", { className: styling.containerClassName, children: [photos.length < maxPhotos && !processRunning && (jsxRuntime.jsxs("label", { title: 'Upload Image', className: styling.uploadButtonClassName, children: [jsxRuntime.jsx("span", { className: 'text-center', children: "Upload" }), jsxRuntime.jsx("input", { type: 'file', accept: 'image/*', multiple: true, onChange: (e) => {
+    return (jsxRuntime.jsx(DndContext, { sensors: sensors, collisionDetection: closestCenter, onDragEnd: handleDragEnd, children: jsxRuntime.jsx(SortableContext, { items: blobs.map((blob) => photo.checksum ?? ''), strategy: rectSortingStrategy, children: jsxRuntime.jsxs("div", { className: styling.containerClassName, children: [blobs.length < maxItems && !processRunning && (jsxRuntime.jsxs("label", { title: 'Upload Image', className: styling.uploadButtonClassName, children: [jsxRuntime.jsx("span", { className: 'text-center', children: "Upload" }), jsxRuntime.jsx("input", { type: 'file', accept: 'image/*', multiple: true, onChange: (e) => {
                                     if (e.target.files && e.target.files.length > 0) {
                                         handleFiles(e.target.files);
                                         e.target.value = '';
                                     }
                                 }, onClick: (e) => {
                                     e.target.value = '';
-                                }, className: 'hidden' })] })), photos
-                        .filter((photo) => photo.checksum)
-                        .map((photo) => (jsxRuntime.jsx(SortablePhoto$1, { id: photo.checksum ?? '', photo: photo, filesMap: filesMap, isImmediateSyncMode: isImmediateSyncMode, attachableId: attachableId, mainPhotoHash: mainPhotoHash, setMainPhotoHash: handleSetMainPhotoHash, deleteAttachment: wrappedDeleteAttachment, deleteFromFilesMap: deleteFromFilesMap, removePhotoByHash: removePhotoByHash, getUploadUrl: wrappedGetUploadUrl, getPreviewUrl: wrappedGetPreviewUrl, directUpload: wrappedDirectUpload, createBlob: wrappedCreateBlob, createAttachment: wrappedCreateAttachment, resetMainPhotoHash: handleResetMainPhotoHash, syncPhotos: syncPhotos, setPhotoState: (hash, state) => {
-                            updatePhotoState(hash, { state });
-                            legacySetPhotoState?.(hash, state);
-                        }, styling: styling }, photo.checksum ?? '')))] }) }) }));
+                                }, className: 'hidden' })] })), blobs
+                        .filter((blob) => photo.checksum)
+                        .map((blob) => (jsxRuntime.jsx(SortableBlob, { id: blob.checksum ?? '', blob: blob, filesMap: filesMap, isImmediateSyncMode: isImmediateSyncMode, attachableId: attachableId, attachableType: attachableType, syncBlobs: shouldSyncBlobs, mutations: mutations, stateSetters: stateSetters, styling: styling }, blob.checksum ?? '')))] }) }) }));
 };
 
-const Photo = ({ isImmediateSyncMode, attachableId, file, photo, mainPhotoHash, setMainPhotoHash, deleteFromFilesMap, getUploadUrl, getPreviewUrl, directUpload, createBlob, createAttachment, removePhotoByHash, deleteAttachment, resetMainPhotoHash, setPhotoState, syncPhotos, }) => {
-    const handleRemovePhoto = () => {
-        if (photo.state === 'ATTACHED') {
-            if (syncPhotos) {
-                setPhotoState(photo.checksum, 'MARKED_FOR_DETACH');
-            }
-            else {
-                setPhotoState(photo.checksum, 'DETACHED');
-            }
-        }
-        else {
-            setPhotoState(photo.checksum, 'DETACHED');
-        }
-    };
-    const unlinkPhoto = () => {
-        deleteFromFilesMap(photo.checksum);
-        removePhotoByHash(photo.checksum);
-        if (mainPhotoHash === photo.checksum) {
-            resetMainPhotoHash();
-        }
-    };
-    React.useEffect(() => {
-        console.log('photo.state', photo.state);
-        console.log('syncPhotos', syncPhotos);
-        switch (photo.state) {
-            case 'SELECTED_FOR_UPLOAD':
-                if (syncPhotos)
-                    getUploadUrl(photo.checksum);
-                break;
-            case 'UPLOADING_URL_GENERATED':
-                if (file)
-                    directUpload(photo.checksum, file);
-                break;
-            case 'UPLOADED':
-                if (photo.key && photo.name)
-                    createBlob(photo.checksum);
-                break;
-            case 'BLOB_CREATED':
-                if (attachableId && photo.blobId)
-                    createAttachment(photo.checksum, attachableId);
-                break;
-            case 'ATTACHED':
-                if (!photo.previewUrl)
-                    getPreviewUrl(photo.checksum);
-                break;
-            case 'DETACHED':
-                unlinkPhoto();
-                break;
-            case 'MARKED_FOR_DETACH':
-                if (syncPhotos)
-                    deleteAttachment(photo.checksum);
-                break;
-        }
-    }, [file, attachableId, syncPhotos, photo.state, photo.previewUrl]);
-    console.log('photo.hash', photo.checksum);
-    console.log('mainPhotoHash', mainPhotoHash);
-    if ((!isImmediateSyncMode && photo.state === 'DETACHING') ||
-        ['DETACHED', 'MARKED_FOR_DETACH'].includes(photo.state ?? '')) {
-        return null;
-    }
-    return (jsxRuntime.jsxs("div", { className: 'relative w-full h-full ', title: photo.name ?? '', children: [jsxRuntime.jsx("img", { src: photo.previewUrl, alt: `${photo.name}`, className: 'object-cover w-full h-full' }), photo.state !== 'ATTACHED' &&
-                syncPhotos &&
-                (photo.state !== 'BLOB_CREATED' || attachableId) && (jsxRuntime.jsx("div", { className: 'absolute inset-0 bg-black/20 flex items-center justify-center', children: jsxRuntime.jsx(Loader, { className: 'text-on-accent-primary animate-spin' }) })), mainPhotoHash === photo.checksum && (jsxRuntime.jsx("span", { className: 'absolute top-1 left-1 accent-primary text-on-accent-primary text-t4 px-1 py-0.5 rounded-full', children: "MAIN" })), mainPhotoHash !== photo.checksum && (jsxRuntime.jsx("button", { type: 'button', onClick: () => setMainPhotoHash(photo.checksum), className: 'absolute bottom-0 left-0 text-t4 px-2 py-0.5 rounded-full   \n          translate-y-1/2\n          bg-[var(--bg-primary-color)] \n          border-[var(--border-bg-primary-color)] border-1\n          text-[var(--text-primary-color)]\n          transition-colors duration-100\n          hover:bg-[var(--bg-focused-color)] \n          hover:text-[var(--text-accent-primary-color)]  \n          hover:border-[var(--border-bg-focused-color)]\n          ', children: "Set Main" })), jsxRuntime.jsx("button", { type: 'button', onClick: () => handleRemovePhoto(), className: 'absolute top-0 right-0   -translate-y-1/2 translate-x-1/2\n        bg-[var(--bg-primary-color)]\n        text-[var(--text-primary-color)]\n        border-[var(--border-bg-primary-color)] \n        hover:text-[var(--danger-primary)]  \n        hover:bg-[var(--warning-primary)] \n        hover:border-[var(--border-warning-primary-color)]\n         rounded-full p-0.5 cursor-pointer', children: jsxRuntime.jsx(X, { size: 16 }) })] }));
-};
-
-function SortablePhoto({ id, photo, filesMap, isImmediateSyncMode, attachableId, mainPhotoHash, setMainPhotoHash, deleteAttachment, deleteFromFilesMap, removePhotoByHash, getUploadUrl, getPreviewUrl, directUpload, createBlob, createAttachment, resetMainPhotoHash, syncPhotos, setPhotoState, }) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging, } = useSortable({ id });
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 999 : undefined,
-        opacity: isDragging ? 0.5 : 1,
-    };
-    return (jsxRuntime.jsx("div", { ref: setNodeRef, style: style, ...attributes, ...listeners, className: 'w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] md:w-[120px] md:h-[120px] lg:w-[140px] lg:h-[140px]', children: jsxRuntime.jsx(Photo, { isImmediateSyncMode: isImmediateSyncMode, attachableId: attachableId, file: filesMap.get(photo.checksum ?? ''), photo: photo, mainPhotoHash: mainPhotoHash ?? null, setMainPhotoHash: setMainPhotoHash, deleteAttachment: deleteAttachment, deleteFromFilesMap: deleteFromFilesMap, removePhotoByHash: removePhotoByHash, getUploadUrl: getUploadUrl, getPreviewUrl: getPreviewUrl, directUpload: directUpload, createBlob: createBlob, createAttachment: createAttachment, resetMainPhotoHash: resetMainPhotoHash, syncPhotos: syncPhotos, setPhotoState: setPhotoState }) }));
-}
-
-const Uploader = ({ isImmediateSyncMode, maxPhotos = 10, syncPhotos, photos, attachableId, processRunning, addPhoto, setMainPhotoHash, mainPhotoHash, removePhotoByHash, getUploadUrl, getPreviewUrl, directUpload, createBlob, createAttachment, deleteAttachment, resetMainPhotoHash, setPhotoState, setPhotos, }) => {
-    const [filesMap, setFilesMap] = React.useState(new Map());
-    const deleteFromFilesMap = (hash) => {
-        const checksum = photos.find((photo) => photo.checksum === hash)?.checksum;
-        if (!checksum)
-            return;
-        setFilesMap((prevMap) => {
-            const newMap = new Map(prevMap);
-            newMap.delete(checksum);
-            return newMap;
-        });
-    };
-    const handleFiles = async (fileList) => {
-        if (!fileList)
-            return;
-        const files = Array.from(fileList);
-        const validFiles = files.slice(0, maxPhotos - photos.length);
-        for (const file of validFiles) {
-            const checksum = await calculateChecksum(file);
-            if (photos.some((photo) => photo.checksum === checksum)) {
-                continue;
-            }
-            setFilesMap((prevMap) => {
-                const newMap = new Map(prevMap);
-                newMap.set(checksum, file);
-                return newMap;
-            });
-            const newItem = {
-                attachmentId: null,
-                blobId: null,
-                key: null,
-                previewUrl: URL.createObjectURL(file ?? new File([], '')),
-                name: file.name,
-                uploadUrl: null,
-                mimeType: file.type,
-                size: file.size,
-                checksum: checksum,
-                state: 'SELECTED_FOR_UPLOAD',
-                errorMessage: null,
-            };
-            addPhoto(newItem);
-        }
-    };
-    const sensors = useSensors(useSensor(PointerSensor, {
-        activationConstraint: {
-            distance: 5,
-        },
-    }));
-    const handleDragEnd = (event) => {
-        const { active, over } = event;
-        if (active.id !== over?.id) {
-            const oldIndex = photos.findIndex((p) => p.checksum === active.id);
-            const newIndex = photos.findIndex((p) => p.checksum === over.id);
-            setPhotos(arrayMove(photos, oldIndex, newIndex));
-        }
-    };
-    return (jsxRuntime.jsx(DndContext, { sensors: sensors, collisionDetection: closestCenter, onDragEnd: handleDragEnd, children: jsxRuntime.jsx(SortableContext, { items: photos.map((photo) => photo.checksum ?? ''), strategy: rectSortingStrategy, children: jsxRuntime.jsxs("div", { className: 'flex flex-wrap justify-start items-stretch gap-x-2 gap-y-4  lg:gap-x-4 lg:gap-y-6 rounded-lg  rounded-none ', children: [photos.length < maxPhotos && (jsxRuntime.jsxs("label", { title: 'Upload Image', className: 'w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] md:w-[120px] md:h-[120px] lg:w-[140px] lg:h-[140px]\n                text-secondary font-medium text-t2 \n                flex items-center justify-center\n                border border-dashed border-bg-primary  \n                rounded-[4px] \n                cursor-pointer \n                bg-primary hover:!bg-[var(--bg-focused-color)] \n                hover:!text-[var(--text-accent-primary-color)] hover:!border-[var(--border-accent-primary-color)] \n                transition-colors duration-100', children: [jsxRuntime.jsx("span", { className: '  text-center', children: "Upload" }), jsxRuntime.jsx("input", { type: 'file', accept: 'image/*', multiple: true, onChange: (e) => {
-                                    if (e.target.files && e.target.files.length > 0) {
-                                        handleFiles(e.target.files);
-                                        e.target.value = '';
-                                    }
-                                }, onClick: (e) => {
-                                    e.target.value = '';
-                                }, className: 'hidden' })] })), photos
-                        .filter((photo) => photo.checksum)
-                        .map((photo) => (jsxRuntime.jsx(SortablePhoto, { id: photo.checksum ?? '', photo: photo, filesMap: filesMap, isImmediateSyncMode: isImmediateSyncMode, attachableId: attachableId, mainPhotoHash: mainPhotoHash, setMainPhotoHash: setMainPhotoHash, deleteAttachment: deleteAttachment, deleteFromFilesMap: deleteFromFilesMap, removePhotoByHash: removePhotoByHash, getUploadUrl: getUploadUrl, getPreviewUrl: getPreviewUrl, directUpload: directUpload, createBlob: createBlob, createAttachment: createAttachment, resetMainPhotoHash: resetMainPhotoHash, syncPhotos: syncPhotos, setPhotoState: setPhotoState }, photo.checksum ?? '')))] }) }) }));
-};
-
-exports.ImageUploader = Uploader$1;
-exports.ImageUploaderV1 = Uploader;
+exports.BlobUploader = Uploader;
+exports.ImageUploader = Uploader;
 exports.calculateChecksum = calculateChecksum;
-exports.default = Uploader$1;
+exports.default = Uploader;
 //# sourceMappingURL=index.js.map

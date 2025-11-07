@@ -1,5 +1,5 @@
 import React from 'react';
-import PropsType from './propsType';
+import PropsType from './propsType.v2';
 declare const ImageUploader: React.FC<PropsType>;
 export default ImageUploader;
 //# sourceMappingURL=index.d.ts.map

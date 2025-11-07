@@ -11,9 +11,9 @@ import {
   SortableContext,
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
-import { PhotoType } from '../types/photo';
+import { BlobType, PhotoType } from '../types/blob'; // PhotoType is alias for backward compatibility
 import { calculateChecksum } from '../utils/checksum';
-import SortablePhoto from './SortablePhoto.v2';
+import SortableBlob from './SortableBlob.v2';
 import { LoadedPropsType } from './propsType.v2';
 import { mergeStyling } from '../types/styling';
 
@@ -28,16 +28,24 @@ import { mergeStyling } from '../types/styling';
  */
 export const Uploader = ({
   isImmediateSyncMode = false,
-  maxPhotos = 10,
+  // Support both new and old prop names for backward compatibility
+  maxBlobs,
+  maxPhotos,
+  syncBlobs,
   syncPhotos,
-  initialPhotos = [],
+  initialBlobs,
+  initialPhotos,
+  onBlobsChange,
   onPhotosChange,
   attachableId,
   attachableType = 'Offer',
   processRunning = false,
-  mainPhotoHash: externalMainPhotoHash,
+  mainBlobHash: externalMainBlobHash,
+  mainPhotoHash: externalMainPhotoHash_legacy,
+  onMainBlobChange,
   onMainPhotoChange,
   mutations,
+  stateSetters: externalStateSetters,
   styling: customStyling,
   
   // Legacy props (for backward compatibility)
@@ -55,42 +63,50 @@ export const Uploader = ({
   setPhotoState: legacySetPhotoState,
   setPhotos: legacySetPhotos,
 }: LoadedPropsType) => {
+  // Normalize props (new names take precedence, fall back to old names)
+  const maxItems = maxBlobs ?? maxPhotos ?? 10;
+  const shouldSyncBlobs = syncBlobs ?? syncPhotos ?? false;
+  const initialItems = initialBlobs ?? initialPhotos ?? legacyPhotos ?? [];
+  const externalMain = externalMainBlobHash ?? externalMainPhotoHash_legacy ?? null;
+  const onItemsChange = onBlobsChange ?? onPhotosChange;
+  const onMainChange = onMainBlobChange ?? onMainPhotoChange;
+  
   // ===== INTERNAL STATE MANAGEMENT =====
-  const [photos, setPhotos] = useState<PhotoType[]>(initialPhotos || legacyPhotos || []);
+  const [blobs, setBlobs] = useState<BlobType[]>(initialItems);
   const [filesMap, setFilesMap] = useState<Map<string, File>>(new Map());
-  const [mainPhotoHash, setMainPhotoHash] = useState<string | null>(externalMainPhotoHash || null);
+  const [mainBlobHash, setMainBlobHash] = useState<string | null>(externalMain);
 
   // Merge styling with defaults
   const styling = useMemo(() => mergeStyling(customStyling), [customStyling]);
 
   // ===== SYNC WITH PARENT =====
   useEffect(() => {
-    onPhotosChange?.(photos);
-  }, [photos, onPhotosChange]);
+    onItemsChange?.(blobs);
+  }, [blobs, onItemsChange]);
 
   useEffect(() => {
-    onMainPhotoChange?.(mainPhotoHash);
-  }, [mainPhotoHash, onMainPhotoChange]);
+    onMainChange?.(mainBlobHash);
+  }, [mainBlobHash, onMainChange]);
 
-  // ===== PHOTO STATE MANAGEMENT =====
-  const updatePhotoState = useCallback((checksum: string, updates: Partial<PhotoType>) => {
-    setPhotos(prev => prev.map(p =>
+  // ===== BLOB STATE MANAGEMENT =====
+  const updateBlobState = useCallback((checksum: string, updates: Partial<BlobType>) => {
+    setBlobs(prev => prev.map(p =>
       p.checksum === checksum ? { ...p, ...updates } : p
     ));
   }, []);
 
-  const addPhoto = useCallback((photo: PhotoType) => {
-    setPhotos(prev => [...prev, photo]);
-    legacyAddPhoto?.(photo); // Backward compatibility
+  const addBlob = useCallback((blob: BlobType) => {
+    setBlobs(prev => [...prev, blob]);
+    legacyAddPhoto?.(blob); // Backward compatibility
   }, [legacyAddPhoto]);
 
-  const removePhotoByHash = useCallback((checksum: string) => {
-    setPhotos(prev => prev.filter(p => p.checksum !== checksum));
-    if (mainPhotoHash === checksum) {
-      setMainPhotoHash(null);
+  const removeBlobByHash = useCallback((checksum: string) => {
+    setBlobs(prev => prev.filter(p => p.checksum !== checksum));
+    if (mainBlobHash === checksum) {
+      setMainBlobHash(null);
     }
     legacyRemovePhotoByHash?.(checksum); // Backward compatibility
-  }, [mainPhotoHash, legacyRemovePhotoByHash]);
+  }, [mainBlobHash, legacyRemovePhotoByHash]);
 
   // ===== FILE HANDLING =====
   const deleteFromFilesMap = useCallback((checksum: string) => {
@@ -104,12 +120,12 @@ export const Uploader = ({
   const handleFiles = useCallback(async (fileList: FileList | null) => {
     if (!fileList) return;
     const files: File[] = Array.from(fileList);
-    const validFiles: File[] = files.slice(0, maxPhotos - photos.length);
+    const validFiles: File[] = files.slice(0, maxItems - blobs.length);
 
     for (const file of validFiles) {
       const checksum = await calculateChecksum(file);
 
-      if (photos.some((photo) => photo.checksum === checksum)) {
+      if (blobs.some((blob) => blob.checksum === checksum)) {
         continue;
       }
 
@@ -119,7 +135,7 @@ export const Uploader = ({
         return newMap;
       });
 
-      const newPhoto: PhotoType = {
+      const newBlob: BlobType = {
         attachmentId: null,
         blobId: null,
         key: null,
@@ -132,9 +148,9 @@ export const Uploader = ({
         state: 'SELECTED_FOR_UPLOAD',
         errorMessage: null,
       };
-      addPhoto(newPhoto);
+      addBlob(newBlob);
     }
-  }, [maxPhotos, photos, addPhoto]);
+  }, [maxItems, blobs, addBlob]);
 
   // ===== MUTATION WRAPPERS (Internal state management) =====
   const wrappedGetUploadUrl = useCallback(async (checksum: string) => {
@@ -262,7 +278,32 @@ export const Uploader = ({
     } catch (error: any) {
       console.error('Failed to get preview URL:', error);
     }
-  }, [photos, mutations, updatePhotoState]);
+  }, [blobs, mutations, updateBlobState]);
+
+  // ===== STATE SETTERS (Framework-agnostic) =====
+  const stateSetters = useMemo(() => ({
+    setBlobState: (hash: string, state: BlobType['state']) => {
+      updateBlobState(hash, { state });
+    },
+    setBlobUploadUrl: (hash: string, uploadUrl: string) => {
+      updateBlobState(hash, { uploadUrl });
+    },
+    setBlobKey: (hash: string, key: string) => {
+      updateBlobState(hash, { key });
+    },
+    setBlobId: (hash: string, blobId: number) => {
+      updateBlobState(hash, { blobId });
+    },
+    setBlobPreviewUrl: (hash: string, previewUrl: string) => {
+      updateBlobState(hash, { previewUrl });
+    },
+    setBlobAttachmentId: (hash: string, attachmentId: number) => {
+      updateBlobState(hash, { attachmentId });
+    },
+    setBlobErrorMessage: (hash: string, errorMessage: string | null) => {
+      updateBlobState(hash, { errorMessage });
+    },
+  }), [updateBlobState]);
 
   // ===== DRAG AND DROP =====
   const sensors = useSensors(
@@ -276,7 +317,7 @@ export const Uploader = ({
   const handleDragEnd = useCallback((event: any) => {
     const { active, over } = event;
     if (active.id !== over?.id) {
-      setPhotos(prev => {
+      setBlobs(prev => {
         const oldIndex = prev.findIndex((p) => p.checksum === active.id);
         const newIndex = prev.findIndex((p) => p.checksum === over.id);
         return arrayMove(prev, oldIndex, newIndex);
@@ -284,13 +325,13 @@ export const Uploader = ({
     }
   }, []);
 
-  const handleSetMainPhotoHash = useCallback((checksum: string) => {
-    setMainPhotoHash(checksum);
+  const handleSetMainBlobHash = useCallback((checksum: string) => {
+    setMainBlobHash(checksum);
     legacySetMainPhotoHash?.(checksum); // Backward compatibility
   }, [legacySetMainPhotoHash]);
 
-  const handleResetMainPhotoHash = useCallback(() => {
-    setMainPhotoHash(null);
+  const handleResetMainBlobHash = useCallback(() => {
+    setMainBlobHash(null);
     legacyResetMainPhotoHash?.(); // Backward compatibility
   }, [legacyResetMainPhotoHash]);
 
@@ -302,11 +343,11 @@ export const Uploader = ({
       onDragEnd={handleDragEnd}
     >
       <SortableContext
-        items={photos.map((photo) => photo.checksum ?? '')}
+        items={blobs.map((blob) => photo.checksum ?? '')}
         strategy={rectSortingStrategy}
       >
         <div className={styling.containerClassName}>
-          {photos.length < maxPhotos && !processRunning && (
+          {blobs.length < maxItems && !processRunning && (
             <label
               title='Upload Image'
               className={styling.uploadButtonClassName}
@@ -329,32 +370,20 @@ export const Uploader = ({
               />
             </label>
           )}
-          {photos
-            .filter((photo) => photo.checksum)
-            .map((photo) => (
-              <SortablePhoto
-                key={photo.checksum ?? ''}
-                id={photo.checksum ?? ''}
-                photo={photo}
+          {blobs
+            .filter((blob) => photo.checksum)
+            .map((blob) => (
+              <SortableBlob
+                key={blob.checksum ?? ''}
+                id={blob.checksum ?? ''}
+                blob={blob}
                 filesMap={filesMap}
                 isImmediateSyncMode={isImmediateSyncMode}
                 attachableId={attachableId}
-                mainPhotoHash={mainPhotoHash}
-                setMainPhotoHash={handleSetMainPhotoHash}
-                deleteAttachment={wrappedDeleteAttachment}
-                deleteFromFilesMap={deleteFromFilesMap}
-                removePhotoByHash={removePhotoByHash}
-                getUploadUrl={wrappedGetUploadUrl}
-                getPreviewUrl={wrappedGetPreviewUrl}
-                directUpload={wrappedDirectUpload}
-                createBlob={wrappedCreateBlob}
-                createAttachment={wrappedCreateAttachment}
-                resetMainPhotoHash={handleResetMainPhotoHash}
-                syncPhotos={syncPhotos}
-                setPhotoState={(hash: string, state: PhotoType['state']) => {
-                  updatePhotoState(hash, { state });
-                  legacySetPhotoState?.(hash, state); // Backward compatibility
-                }}
+                attachableType={attachableType}
+                syncBlobs={shouldSyncBlobs}
+                mutations={mutations}
+                stateSetters={stateSetters}
                 styling={styling}
               />
             ))}

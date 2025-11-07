@@ -1,16 +1,23 @@
-export interface GetUploadUrlResponse {
+export type Result<T> = {
+    success: true;
+    data: T;
+} | {
+    success: false;
+    error: string;
+};
+export interface GetUploadUrlData {
     uploadUrl: string;
     key: string;
 }
-export interface CreateBlobResponse {
+export interface CreateBlobData {
     id: number;
     key: string;
     url: string;
 }
-export interface CreateAttachmentResponse {
+export interface CreateAttachmentData {
     id: number;
 }
-export interface GetPreviewUrlResponse {
+export interface GetPreviewUrlData {
     previewUrl: string;
 }
 export interface MutationCallbacks {
@@ -19,22 +26,22 @@ export interface MutationCallbacks {
         name: string;
         mimeType: string;
         size: number;
-    }) => Promise<GetUploadUrlResponse>;
-    directUpload: (uploadUrl: string, file: File) => Promise<void>;
+    }) => Promise<Result<GetUploadUrlData>>;
+    directUpload: (uploadUrl: string, file: File) => Promise<Result<void>>;
     createBlob: (params: {
         key: string;
         checksum: string;
         name: string;
         mimeType: string;
         size: number;
-    }) => Promise<CreateBlobResponse>;
+    }) => Promise<Result<CreateBlobData>>;
     createAttachment: (params: {
         blobId: number;
         attachableId: number;
         attachableType: string;
-    }) => Promise<CreateAttachmentResponse>;
-    deleteAttachment: (attachmentId: number) => Promise<void>;
-    getPreviewUrl: (key: string) => Promise<GetPreviewUrlResponse>;
+    }) => Promise<Result<CreateAttachmentData>>;
+    deleteAttachment: (attachmentId: number) => Promise<Result<void>>;
+    getPreviewUrl: (key: string) => Promise<Result<GetPreviewUrlData>>;
 }
 export type PartialMutationCallbacks = Partial<MutationCallbacks>;
 //# sourceMappingURL=mutations.d.ts.map

@@ -3,60 +3,66 @@
  * 
  * These callbacks are provided by the parent application and perform the actual API calls.
  * The component handles all state transitions internally based on the results.
+ * 
+ * All mutations return a Result type (success or error) instead of throwing exceptions,
+ * making them framework-agnostic and not reliant on try-catch patterns.
  */
 
-export interface GetUploadUrlResponse {
+/**
+ * Generic Result type for all mutation responses
+ */
+export type Result<T> = 
+  | { success: true; data: T }
+  | { success: false; error: string };
+
+/**
+ * Success response data types
+ */
+export interface GetUploadUrlData {
   uploadUrl: string;
   key: string;
 }
 
-export interface CreateBlobResponse {
+export interface CreateBlobData {
   id: number;
   key: string;
   url: string;
 }
 
-export interface CreateAttachmentResponse {
+export interface CreateAttachmentData {
   id: number;
 }
 
-export interface GetPreviewUrlResponse {
+export interface GetPreviewUrlData {
   previewUrl: string;
 }
 
 /**
  * Mutation callbacks interface
- * All callbacks should return Promises and throw errors on failure
+ * All callbacks return Result<T> to indicate success or failure
+ * No exceptions are thrown - all errors are returned in the Result type
  */
 export interface MutationCallbacks {
   /**
    * Get a signed upload URL for direct upload to S3
-   * @param checksum - File checksum
-   * @param fileName - File name
-   * @param mimeType - File MIME type
-   * @param fileSize - File size in bytes
+   * @returns Result with uploadUrl and key on success, or error message on failure
    */
   getUploadUrl: (params: {
     checksum: string;
     name: string;
     mimeType: string;
     size: number;
-  }) => Promise<GetUploadUrlResponse>;
+  }) => Promise<Result<GetUploadUrlData>>;
 
   /**
    * Upload file directly to S3 using signed URL
-   * @param uploadUrl - Signed S3 URL
-   * @param file - File to upload
+   * @returns Result with void on success, or error message on failure
    */
-  directUpload: (uploadUrl: string, file: File) => Promise<void>;
+  directUpload: (uploadUrl: string, file: File) => Promise<Result<void>>;
 
   /**
    * Create blob record in database after successful upload
-   * @param key - S3 object key
-   * @param checksum - File checksum
-   * @param name - File name
-   * @param mimeType - File MIME type
-   * @param size - File size
+   * @returns Result with blob data on success, or error message on failure
    */
   createBlob: (params: {
     key: string;
@@ -64,31 +70,29 @@ export interface MutationCallbacks {
     name: string;
     mimeType: string;
     size: number;
-  }) => Promise<CreateBlobResponse>;
+  }) => Promise<Result<CreateBlobData>>;
 
   /**
    * Create attachment linking blob to attachable entity
-   * @param blobId - Blob ID
-   * @param attachableId - Entity ID to attach to
-   * @param attachableType - Entity type (e.g., 'Offer', 'Product')
+   * @returns Result with attachment id on success, or error message on failure
    */
   createAttachment: (params: {
     blobId: number;
     attachableId: number;
     attachableType: string;
-  }) => Promise<CreateAttachmentResponse>;
+  }) => Promise<Result<CreateAttachmentData>>;
 
   /**
    * Delete an attachment
-   * @param attachmentId - Attachment ID to delete
+   * @returns Result with void on success, or error message on failure
    */
-  deleteAttachment: (attachmentId: number) => Promise<void>;
+  deleteAttachment: (attachmentId: number) => Promise<Result<void>>;
 
   /**
    * Get preview URL for displaying image
-   * @param key - S3 object key or checksum
+   * @returns Result with preview URL on success, or error message on failure
    */
-  getPreviewUrl: (key: string) => Promise<GetPreviewUrlResponse>;
+  getPreviewUrl: (key: string) => Promise<Result<GetPreviewUrlData>>;
 }
 
 /**
