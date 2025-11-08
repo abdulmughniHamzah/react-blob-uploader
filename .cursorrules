@@ -4,7 +4,8 @@
 Framework-agnostic React component library (Published to GitHub)
 
 ## Git Workflow
-✅ AI CAN auto-commit and push changes to GitHub
+- ❌ Do not run `git add`, `git commit`, `git push`, or other mutating git commands automatically.
+- ✅ Run git commands only when the user explicitly requests them.
 
 ## Key Principles
 - Framework-agnostic design (works with ANY state management)
