@@ -7,7 +7,7 @@ interface SortableBlobProps {
     blob: BlobType;
     filesMap: Map<string, File>;
     instantUpload: boolean;
-    instantAttach: boolean;
+    instantSyncAttach: boolean;
     attachableId: number | null;
     attachableType: string;
     mainBlobHash: string | null;
@@ -19,6 +19,6 @@ interface SortableBlobProps {
     stateSetters: BlobStateSetters;
     styling: Required<StylingProps>;
 }
-declare function SortableBlob({ id, blob, filesMap, instantUpload, instantAttach, attachableId, attachableType, mainBlobHash, setMainBlobHash, deleteFromFilesMap, removeBlobByHash, resetMainBlobHash, mutations, stateSetters, styling, }: SortableBlobProps): import("react/jsx-runtime").JSX.Element;
+declare function SortableBlob({ id, blob, filesMap, instantUpload, instantSyncAttach, attachableId, attachableType, mainBlobHash, setMainBlobHash, deleteFromFilesMap, removeBlobByHash, resetMainBlobHash, mutations, stateSetters, styling, }: SortableBlobProps): import("react/jsx-runtime").JSX.Element;
 export default SortableBlob;
 //# sourceMappingURL=SortableBlob.d.ts.map

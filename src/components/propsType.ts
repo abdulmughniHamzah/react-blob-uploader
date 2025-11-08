@@ -60,8 +60,8 @@ export type LoadedPropsType = {
    * - false: Stop at BLOB_CREATED state (attach later when offer is saved)
    * @default false
    */
-  instantAttach?: boolean;
-  /** @deprecated Use instantAttach instead */
+  instantSyncAttach?: boolean;
+  /** @deprecated Use instantSyncAttach instead */
   isImmediateSyncMode?: boolean;
   
   /**

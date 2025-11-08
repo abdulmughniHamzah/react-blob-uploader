@@ -1,27 +1,14 @@
 # React Blob Uploader - Public Library Rules
 
-## Project Type
-Framework-agnostic React component library (Published to GitHub)
+## 🚫 Git Workflow
+- ❌ Never run `git add`, `git commit`, or `git push` automatically
+- ✅ Execute git commands only when the user explicitly requests them
+- 🔄 Update this file and supporting docs whenever component APIs or structure change
 
-## Git Workflow
-- ❌ Do not run `git add`, `git commit`, `git push`, or other mutating git commands automatically.
-- ✅ Run git commands only when the user explicitly requests them.
-- 🔄 Keep this `.cursorrules` file (and documentation) updated whenever component APIs, library structure, or published features change.
+## 🧭 Working Expectations
+- Maintain framework-agnostic patterns and flat mutation results
+- Keep Tailwind-based styling overrides consistent
 
-## Key Principles
-- Framework-agnostic design (works with ANY state management)
-- Flat result structures (no nested data)
-- 100% Tailwind CSS (no custom CSS variables)
-- TypeScript with full type safety
-- Comprehensive error handling with failed states
-
-## Development
-```bash
-npm run build   # Build library
-npm run dev     # Watch mode
-```
-
-## Publishing
-- Committed dist/ folder for GitHub installs
-- pnpm add github:abdulmughniHamzah/react-blob-uploader
-
+## 📚 Full Library Reference
+- Detailed guidance is auto-included from:
+  - @include .cursor/rules/00-overview.md

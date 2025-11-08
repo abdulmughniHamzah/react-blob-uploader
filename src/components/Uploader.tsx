@@ -29,7 +29,7 @@ import { mergeStyling } from '../types/styling';
 export const Uploader = ({
   // New prop names (clear and explicit)
   instantUpload,
-  instantAttach = false,
+  instantSyncAttach = false,
   // Support both new and old prop names for backward compatibility
   maxBlobs,
   maxPhotos,
@@ -68,7 +68,7 @@ export const Uploader = ({
   // Normalize props (new names take precedence, fall back to old names)
   const maxItems = maxBlobs ?? maxPhotos ?? 10;
   const shouldUploadInstantly = instantUpload ?? syncBlobs ?? syncPhotos ?? true;
-  const shouldAttachInstantly = instantAttach ?? isImmediateSyncMode ?? false;
+  const shouldAttachInstantly = instantSyncAttach ?? isImmediateSyncMode ?? false;
   const initialItems = initialBlobs ?? initialPhotos ?? legacyPhotos ?? [];
   const externalMain = externalMainBlobHash ?? externalMainPhotoHash_legacy ?? null;
   const onItemsChange = onBlobsChange ?? onPhotosChange;
@@ -430,7 +430,7 @@ export const Uploader = ({
                 blob={blob}
                 filesMap={filesMap}
                 instantUpload={shouldUploadInstantly}
-                instantAttach={shouldAttachInstantly}
+                instantSyncAttach={shouldAttachInstantly}
                 attachableId={attachableId}
                 attachableType={attachableType}
                 mainBlobHash={mainBlobHash}

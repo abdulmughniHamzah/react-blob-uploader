@@ -11,7 +11,7 @@ interface SortableBlobProps {
   blob: BlobType;
   filesMap: Map<string, File>;
   instantUpload: boolean;
-  instantAttach: boolean;
+  instantSyncAttach: boolean;
   attachableId: number | null;
   attachableType: string;
   mainBlobHash: string | null;
@@ -29,7 +29,7 @@ function SortableBlob({
   blob,
   filesMap,
   instantUpload,
-  instantAttach,
+  instantSyncAttach,
   attachableId,
   attachableType,
   mainBlobHash,
@@ -66,7 +66,7 @@ function SortableBlob({
     >
       <Blob
         instantUpload={instantUpload}
-        instantAttach={instantAttach}
+        instantSyncAttach={instantSyncAttach}
         attachableId={attachableId}
         attachableType={attachableType}
         file={filesMap.get(blob.checksum ?? '')}

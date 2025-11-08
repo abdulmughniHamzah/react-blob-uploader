@@ -12,7 +12,7 @@ export interface BlobStateSetters {
 }
 interface BlobProps {
     instantUpload: boolean;
-    instantAttach: boolean;
+    instantSyncAttach: boolean;
     blob: BlobType;
     attachableId: number | null;
     attachableType: string;

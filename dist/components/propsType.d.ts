@@ -13,7 +13,7 @@ export type LoadedPropsType = {
     instantUpload?: boolean;
     syncBlobs?: boolean;
     syncPhotos?: boolean;
-    instantAttach?: boolean;
+    instantSyncAttach?: boolean;
     isImmediateSyncMode?: boolean;
     processRunning?: boolean;
     initialBlobs?: BlobType[];

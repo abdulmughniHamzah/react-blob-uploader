@@ -20,7 +20,7 @@ export interface BlobStateSetters {
 
 interface BlobProps {
   instantUpload: boolean;
-  instantAttach: boolean;
+  instantSyncAttach: boolean;
   blob: BlobType;
   attachableId: number | null;
   attachableType: string;
@@ -37,7 +37,7 @@ interface BlobProps {
 
 const Blob: React.FC<BlobProps> = ({
   instantUpload,
-  instantAttach,
+  instantSyncAttach,
   attachableId,
   attachableType,
   file,
@@ -175,8 +175,8 @@ const Blob: React.FC<BlobProps> = ({
           break;
 
         case 'BLOB_CREATED':
-          // Only create attachment when instantAttach is true and we have required data
-          if (instantAttach && attachableId && blob.blobId && !blob.errorMessage) {
+          // Only create attachment when instantSyncAttach is true and we have required data
+          if (instantSyncAttach && attachableId && blob.blobId && !blob.errorMessage) {
             stateSetters.setBlobState(hash, 'ATTACHING');
             
             const result = await mutations.createAttachment({
@@ -209,18 +209,18 @@ const Blob: React.FC<BlobProps> = ({
         case 'MARKED_FOR_DETACH':
           if (instantUpload && blob.attachmentId) {
             stateSetters.setBlobState(hash, 'DETACHING');
-            
-            const result = await mutations.deleteAttachment({
-              hash,
-              attachmentId: blob.attachmentId,
-            });
-            
-            if (result.success) {
-              stateSetters.setBlobErrorMessage(result.hash, null);
-              stateSetters.setBlobState(result.hash, 'DETACHED');
-            } else {
-              stateSetters.setBlobErrorMessage(result.hash, result.error);
-              stateSetters.setBlobState(result.hash, 'DETACHMENT_FAILED');
+            try {
+              await mutations.deleteAttachment({
+                hash,
+                attachmentId: blob.attachmentId,
+              });
+              stateSetters.setBlobErrorMessage(hash, null);
+              stateSetters.setBlobState(hash, 'DETACHED');
+            } catch (error) {
+              const message =
+                error instanceof Error ? error.message : 'Failed to detach blob';
+              stateSetters.setBlobErrorMessage(hash, message);
+              stateSetters.setBlobState(hash, 'DETACHMENT_FAILED');
             }
           }
           break;
@@ -236,7 +236,7 @@ const Blob: React.FC<BlobProps> = ({
     attachableId,
     attachableType,
     instantUpload,
-    instantAttach,
+    instantSyncAttach,
     blob.state,
     blob.checksum,
     blob.errorMessage,
