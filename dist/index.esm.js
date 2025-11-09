@@ -4454,14 +4454,14 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             size: blob.size,
                         });
                         if (result.success) {
-                            stateSetters.setBlobUploadUrl(result.hash, result.uploadUrl);
-                            stateSetters.setBlobKey(result.hash, result.key);
-                            stateSetters.setBlobErrorMessage(result.hash, null);
-                            stateSetters.setBlobState(result.hash, 'UPLOADING_URL_GENERATED');
+                            stateSetters.setBlobUploadUrl(hash, result.uploadUrl);
+                            stateSetters.setBlobKey(hash, result.key);
+                            stateSetters.setBlobErrorMessage(hash, null);
+                            stateSetters.setBlobState(hash, 'UPLOADING_URL_GENERATED');
                         }
                         else {
-                            stateSetters.setBlobErrorMessage(result.hash, result.error);
-                            stateSetters.setBlobState(result.hash, 'UPLOADING_URL_GENERATION_FAILED');
+                            stateSetters.setBlobErrorMessage(hash, result.error);
+                            stateSetters.setBlobState(hash, 'UPLOADING_URL_GENERATION_FAILED');
                         }
                     }
                     break;
@@ -4474,13 +4474,17 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             file,
                         });
                         if (result.success) {
-                            stateSetters.setBlobErrorMessage(result.hash, null);
-                            stateSetters.setBlobState(result.hash, 'UPLOADED');
+                            stateSetters.setBlobErrorMessage(hash, null);
+                            stateSetters.setBlobState(hash, 'UPLOADED');
                         }
                         else {
-                            stateSetters.setBlobErrorMessage(result.hash, result.error);
-                            stateSetters.setBlobState(result.hash, 'UPLOAD_FAILED');
+                            stateSetters.setBlobErrorMessage(hash, result.error);
+                            stateSetters.setBlobState(hash, 'UPLOAD_FAILED');
                         }
+                    }
+                    else {
+                        stateSetters.setBlobErrorMessage(hash, null);
+                        stateSetters.setBlobState(hash, 'UPLOADED');
                     }
                     break;
                 case 'UPLOADED':
@@ -4494,15 +4498,15 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             size: blob.size,
                         });
                         if (result.success) {
-                            stateSetters.setBlobId(result.hash, result.id);
-                            stateSetters.setBlobKey(result.hash, result.key);
-                            stateSetters.setBlobPreviewUrl(result.hash, result.url);
-                            stateSetters.setBlobErrorMessage(result.hash, null);
-                            stateSetters.setBlobState(result.hash, 'BLOB_CREATED');
+                            stateSetters.setBlobId(hash, result.id);
+                            stateSetters.setBlobKey(hash, result.key);
+                            stateSetters.setBlobPreviewUrl(hash, result.url);
+                            stateSetters.setBlobErrorMessage(hash, null);
+                            stateSetters.setBlobState(hash, 'BLOB_CREATED');
                         }
                         else {
-                            stateSetters.setBlobErrorMessage(result.hash, result.error);
-                            stateSetters.setBlobState(result.hash, 'BLOB_CREATION_FAILED');
+                            stateSetters.setBlobErrorMessage(hash, result.error);
+                            stateSetters.setBlobState(hash, 'BLOB_CREATION_FAILED');
                         }
                     }
                     break;
@@ -4516,13 +4520,13 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             attachableType,
                         });
                         if (result.success) {
-                            stateSetters.setBlobAttachmentId(result.hash, result.id);
-                            stateSetters.setBlobErrorMessage(result.hash, null);
-                            stateSetters.setBlobState(result.hash, 'ATTACHED');
+                            stateSetters.setBlobAttachmentId(hash, result.id);
+                            stateSetters.setBlobErrorMessage(hash, null);
+                            stateSetters.setBlobState(hash, 'ATTACHED');
                         }
                         else {
-                            stateSetters.setBlobErrorMessage(result.hash, result.error);
-                            stateSetters.setBlobState(result.hash, 'ATTACHMENT_FAILED');
+                            stateSetters.setBlobErrorMessage(hash, result.error);
+                            stateSetters.setBlobState(hash, 'ATTACHMENT_FAILED');
                         }
                     }
                     break;
