@@ -1,6 +1,6 @@
 {
   "name": "react-blob-uploader",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "A self-contained, production-ready React component for file uploads (images, documents, videos, etc.) with drag & drop, reordering, and cloud direct upload support. Features framework-agnostic state management, Result-based mutation callbacks, and customizable styling.",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -18,7 +18,10 @@
     "lint": "eslint src/**/*.{ts,tsx}",
     "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run build",
-    "publish": "bash -c 'npm run build && git add -A && read -p \"Version tag (e.g. v2.0.1): \" tag && read -p \"Commit message: \" msg && git commit -m \"$msg\" && git tag \"$tag\" && git push && git push origin \"$tag\"'"
+    "release:beta": "npm run build && npm version prerelease --preid=beta --force && git push && git push --tags && npm publish --tag beta --access public",
+    "release:patch": "npm run build && npm version patch --force && git push && git push --tags && npm publish --access public",
+    "release:minor": "npm run build && npm version minor --force && git push && git push --tags && npm publish --access public",
+    "release:major": "npm run build && npm version major --force && git push && git push --tags && npm publish --access public"
   },
   "keywords": [
     "react",
