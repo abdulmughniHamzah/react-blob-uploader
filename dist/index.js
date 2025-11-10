@@ -1,5 +1,7 @@
 'use strict';
 
+Object.defineProperty(exports, '__esModule', { value: true });
+
 var jsxRuntime = require('react/jsx-runtime');
 var React = require('react');
 var reactDom = require('react-dom');
@@ -4850,4 +4852,5 @@ const BlobUploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, blob
 
 exports.BlobUploader = BlobUploader;
 exports.calculateChecksum = calculateChecksum;
+exports.default = BlobUploader;
 //# sourceMappingURL=index.js.map

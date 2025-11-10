@@ -4846,5 +4846,5 @@ const BlobUploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, blob
                         .map((blob) => (jsx(SortableBlob, { id: blob.checksum ?? '', blob: blob, instantUpload: shouldUploadInstantly, instantSyncAttach: shouldAttachInstantly, attachableId: attachableId, attachableType: attachableType, mainBlobHash: mainBlobHash, setMainBlobHash: (checksum) => onMainChange?.(checksum), deleteFromFilesMap: deleteFromFilesMap, removeBlobByHash: removeBlobByHash, resetMainBlobHash: () => onMainChange?.(null), mutations: mutations, stateSetters: stateSetters, styling: styling, filesMap: filesMapRef.current }, blob.checksum ?? '')))] }) }) }));
 };
 
-export { BlobUploader, calculateChecksum };
+export { BlobUploader, calculateChecksum, BlobUploader as default };
 //# sourceMappingURL=index.esm.js.map
