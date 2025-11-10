@@ -4729,7 +4729,7 @@ function mergeStyling(custom) {
     };
 }
 
-const Uploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, initialBlobs, onBlobsChange, attachableId, attachableType = 'Offer', processRunning = false, mainBlobHash: externalMainBlobHash, onMainBlobChange, mutations, styling: customStyling, }) => {
+const BlobUploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, initialBlobs, onBlobsChange, attachableId, attachableType = 'Offer', processRunning = false, mainBlobHash: externalMainBlobHash, onMainBlobChange, mutations, styling: customStyling, }) => {
     const maxItems = maxBlobs ?? 10;
     const shouldUploadInstantly = instantUpload ?? true;
     const shouldAttachInstantly = instantSyncAttach ?? false;
@@ -5027,5 +5027,5 @@ const Uploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, initialB
                         .map((blob) => (jsx(SortableBlob, { id: blob.checksum ?? '', blob: blob, filesMap: filesMap, instantUpload: shouldUploadInstantly, instantSyncAttach: shouldAttachInstantly, attachableId: attachableId, attachableType: attachableType, mainBlobHash: mainBlobHash, setMainBlobHash: handleSetMainBlobHash, deleteFromFilesMap: deleteFromFilesMap, removeBlobByHash: removeBlobByHash, resetMainBlobHash: handleResetMainBlobHash, mutations: mutations, stateSetters: stateSetters, styling: styling }, blob.checksum ?? '')))] }) }) }));
 };
 
-export { Uploader as BlobUploader, Uploader as ImageUploader, calculateChecksum, Uploader as default };
+export { calculateChecksum, BlobUploader as default };
 //# sourceMappingURL=index.esm.js.map

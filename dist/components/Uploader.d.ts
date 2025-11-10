@@ -1,4 +1,4 @@
 import { LoadedPropsType } from './propsType';
-export declare const Uploader: ({ instantUpload, instantSyncAttach, maxBlobs, initialBlobs, onBlobsChange, attachableId, attachableType, processRunning, mainBlobHash: externalMainBlobHash, onMainBlobChange, mutations, styling: customStyling, }: LoadedPropsType) => import("react/jsx-runtime").JSX.Element;
-export default Uploader;
+declare const BlobUploader: ({ instantUpload, instantSyncAttach, maxBlobs, initialBlobs, onBlobsChange, attachableId, attachableType, processRunning, mainBlobHash: externalMainBlobHash, onMainBlobChange, mutations, styling: customStyling, }: LoadedPropsType) => import("react/jsx-runtime").JSX.Element;
+export default BlobUploader;
 //# sourceMappingURL=Uploader.d.ts.map
