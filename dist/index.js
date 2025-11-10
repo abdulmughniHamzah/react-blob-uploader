@@ -4404,14 +4404,14 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
     const handleRemoveBlob = () => {
         if (blob.state === 'ATTACHED') {
             if (instantUpload) {
-                stateSetters.setBlobState(blob.checksum, 'MARKED_FOR_DETACH');
+                stateSetters.updateBlob(blob.checksum, { state: 'MARKED_FOR_DETACH' });
             }
             else {
-                stateSetters.setBlobState(blob.checksum, 'DETACHED');
+                stateSetters.updateBlob(blob.checksum, { state: 'DETACHED' });
             }
         }
         else {
-            stateSetters.setBlobState(blob.checksum, 'DETACHED');
+            stateSetters.updateBlob(blob.checksum, { state: 'DETACHED' });
         }
     };
     const handleRetry = () => {
@@ -4419,19 +4419,19 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
             return;
         switch (blob.state) {
             case 'UPLOADING_URL_GENERATION_FAILED':
-                stateSetters.setBlobState(blob.checksum, 'SELECTED_FOR_UPLOAD');
+                stateSetters.updateBlob(blob.checksum, { state: 'SELECTED_FOR_UPLOAD' });
                 break;
             case 'UPLOAD_FAILED':
-                stateSetters.setBlobState(blob.checksum, 'UPLOADING_URL_GENERATED');
+                stateSetters.updateBlob(blob.checksum, { state: 'UPLOADING_URL_GENERATED' });
                 break;
             case 'BLOB_CREATION_FAILED':
-                stateSetters.setBlobState(blob.checksum, 'UPLOADED');
+                stateSetters.updateBlob(blob.checksum, { state: 'UPLOADED' });
                 break;
             case 'ATTACHMENT_FAILED':
-                stateSetters.setBlobState(blob.checksum, 'BLOB_CREATED');
+                stateSetters.updateBlob(blob.checksum, { state: 'BLOB_CREATED' });
                 break;
             case 'DETACHMENT_FAILED':
-                stateSetters.setBlobState(blob.checksum, 'MARKED_FOR_DETACH');
+                stateSetters.updateBlob(blob.checksum, { state: 'MARKED_FOR_DETACH' });
                 break;
         }
     };
@@ -4450,7 +4450,7 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
             switch (blob.state) {
                 case 'SELECTED_FOR_UPLOAD':
                     if (instantUpload && blob.name && blob.mimeType && blob.size) {
-                        stateSetters.setBlobState(hash, 'UPLOADING_URL_GENERATING');
+                        stateSetters.updateBlob(hash, { state: 'UPLOADING_URL_GENERATING' });
                         const result = await mutations.getUploadUrl({
                             hash,
                             name: blob.name,
@@ -4459,56 +4459,64 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                         });
                         if (result.success) {
                             if (result.uploadUrl) {
-                                stateSetters.setBlobUploadUrl(hash, result.uploadUrl);
-                                stateSetters.setBlobKey(hash, result.key);
-                                stateSetters.setBlobErrorMessage(hash, null);
-                                stateSetters.setBlobState(hash, 'UPLOADING_URL_GENERATED');
+                                stateSetters.updateBlob(hash, {
+                                    uploadUrl: result.uploadUrl,
+                                    key: result.key,
+                                    errorMessage: null,
+                                    state: 'UPLOADING_URL_GENERATED',
+                                });
                             }
                             else if (result.blobId && result.key) {
-                                stateSetters.setBlobId(hash, result.blobId);
-                                stateSetters.setBlobKey(hash, result.key);
-                                if (result.previewUrl) {
-                                    stateSetters.setBlobPreviewUrl(hash, result.previewUrl);
-                                }
-                                stateSetters.setBlobUrl(hash, result.url);
-                                stateSetters.setBlobErrorMessage(hash, null);
-                                stateSetters.setBlobState(hash, 'BLOB_CREATED');
+                                stateSetters.updateBlob(hash, {
+                                    blobId: result.blobId,
+                                    key: result.key,
+                                    previewUrl: result.previewUrl || blob.previewUrl,
+                                    url: result.url,
+                                    errorMessage: null,
+                                    state: 'BLOB_CREATED',
+                                });
                             }
                             else {
-                                if (result.previewUrl) {
-                                    stateSetters.setBlobPreviewUrl(hash, result.previewUrl);
-                                }
-                                stateSetters.setBlobErrorMessage(hash, null);
-                                stateSetters.setBlobState(hash, 'UPLOADED');
+                                stateSetters.updateBlob(hash, {
+                                    previewUrl: result.previewUrl || blob.previewUrl,
+                                    errorMessage: null,
+                                    state: 'UPLOADED',
+                                });
                             }
                         }
                         else {
-                            stateSetters.setBlobErrorMessage(hash, result.error);
-                            stateSetters.setBlobState(hash, 'UPLOADING_URL_GENERATION_FAILED');
+                            stateSetters.updateBlob(hash, {
+                                errorMessage: result.error,
+                                state: 'UPLOADING_URL_GENERATION_FAILED',
+                            });
                         }
                     }
                     break;
                 case 'UPLOADING_URL_GENERATED':
                     if (file && blob.uploadUrl) {
-                        stateSetters.setBlobState(hash, 'UPLOADING');
+                        stateSetters.updateBlob(hash, { state: 'UPLOADING' });
                         const result = await mutations.directUpload({
                             hash,
                             uploadUrl: blob.uploadUrl,
                             file,
                         });
                         if (result.success) {
-                            stateSetters.setBlobErrorMessage(hash, null);
-                            stateSetters.setBlobState(hash, 'UPLOADED');
+                            stateSetters.updateBlob(hash, {
+                                errorMessage: null,
+                                state: 'UPLOADED',
+                            });
                         }
                         else {
-                            stateSetters.setBlobErrorMessage(hash, result.error);
-                            stateSetters.setBlobState(hash, 'UPLOAD_FAILED');
+                            stateSetters.updateBlob(hash, {
+                                errorMessage: result.error,
+                                state: 'UPLOAD_FAILED',
+                            });
                         }
                     }
                     break;
                 case 'UPLOADED':
                     if (blob.key && blob.name && blob.mimeType && blob.size) {
-                        stateSetters.setBlobState(hash, 'BLOB_CREATING');
+                        stateSetters.updateBlob(hash, { state: 'BLOB_CREATING' });
                         const result = await mutations.createBlob({
                             hash,
                             key: blob.key,
@@ -4517,24 +4525,26 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             size: blob.size,
                         });
                         if (result.success) {
-                            stateSetters.setBlobId(hash, result.id);
-                            stateSetters.setBlobKey(hash, result.key);
-                            if (result.previewUrl) {
-                                stateSetters.setBlobPreviewUrl(hash, result.previewUrl);
-                            }
-                            stateSetters.setBlobUrl(hash, result.url);
-                            stateSetters.setBlobErrorMessage(hash, null);
-                            stateSetters.setBlobState(hash, 'BLOB_CREATED');
+                            stateSetters.updateBlob(hash, {
+                                blobId: result.id,
+                                key: result.key,
+                                previewUrl: result.previewUrl || blob.previewUrl,
+                                url: result.url,
+                                errorMessage: null,
+                                state: 'BLOB_CREATED',
+                            });
                         }
                         else {
-                            stateSetters.setBlobErrorMessage(hash, result.error);
-                            stateSetters.setBlobState(hash, 'BLOB_CREATION_FAILED');
+                            stateSetters.updateBlob(hash, {
+                                errorMessage: result.error,
+                                state: 'BLOB_CREATION_FAILED',
+                            });
                         }
                     }
                     break;
                 case 'BLOB_CREATED':
                     if (instantSyncAttach && attachableId && blob.blobId && !blob.errorMessage) {
-                        stateSetters.setBlobState(hash, 'ATTACHING');
+                        stateSetters.updateBlob(hash, { state: 'ATTACHING' });
                         const result = await mutations.createAttachment({
                             hash,
                             blobId: blob.blobId,
@@ -4542,13 +4552,17 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             attachableType,
                         });
                         if (result.success) {
-                            stateSetters.setBlobAttachmentId(hash, result.id);
-                            stateSetters.setBlobErrorMessage(hash, null);
-                            stateSetters.setBlobState(hash, 'ATTACHED');
+                            stateSetters.updateBlob(hash, {
+                                attachmentId: result.id,
+                                errorMessage: null,
+                                state: 'ATTACHED',
+                            });
                         }
                         else {
-                            stateSetters.setBlobErrorMessage(hash, result.error);
-                            stateSetters.setBlobState(hash, 'ATTACHMENT_FAILED');
+                            stateSetters.updateBlob(hash, {
+                                errorMessage: result.error,
+                                state: 'ATTACHMENT_FAILED',
+                            });
                         }
                     }
                     break;
@@ -4559,19 +4573,23 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                     break;
                 case 'MARKED_FOR_DETACH':
                     if (instantUpload && blob.attachmentId) {
-                        stateSetters.setBlobState(hash, 'DETACHING');
+                        stateSetters.updateBlob(hash, { state: 'DETACHING' });
                         try {
                             await mutations.deleteAttachment({
                                 hash,
                                 attachmentId: blob.attachmentId,
                             });
-                            stateSetters.setBlobErrorMessage(hash, null);
-                            stateSetters.setBlobState(hash, 'DETACHED');
+                            stateSetters.updateBlob(hash, {
+                                errorMessage: null,
+                                state: 'DETACHED',
+                            });
                         }
                         catch (error) {
                             const message = error instanceof Error ? error.message : 'Failed to detach blob';
-                            stateSetters.setBlobErrorMessage(hash, message);
-                            stateSetters.setBlobState(hash, 'DETACHMENT_FAILED');
+                            stateSetters.updateBlob(hash, {
+                                errorMessage: message,
+                                state: 'DETACHMENT_FAILED',
+                            });
                         }
                     }
                     break;
@@ -4973,29 +4991,8 @@ const BlobUploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, init
         }
     }, [blobs, mutations, updateBlobState]);
     const stateSetters = React.useMemo(() => ({
-        setBlobState: (hash, state) => {
-            updateBlobState(hash, { state });
-        },
-        setBlobUploadUrl: (hash, uploadUrl) => {
-            updateBlobState(hash, { uploadUrl });
-        },
-        setBlobKey: (hash, key) => {
-            updateBlobState(hash, { key });
-        },
-        setBlobId: (hash, blobId) => {
-            updateBlobState(hash, { blobId });
-        },
-        setBlobPreviewUrl: (hash, previewUrl) => {
-            updateBlobState(hash, { previewUrl });
-        },
-        setBlobUrl: (hash, url) => {
-            updateBlobState(hash, { url });
-        },
-        setBlobAttachmentId: (hash, attachmentId) => {
-            updateBlobState(hash, { attachmentId });
-        },
-        setBlobErrorMessage: (hash, errorMessage) => {
-            updateBlobState(hash, { errorMessage });
+        updateBlob: (hash, updates) => {
+            updateBlobState(hash, updates);
         },
     }), [updateBlobState]);
     const sensors = useSensors(useSensor(PointerSensor, {
