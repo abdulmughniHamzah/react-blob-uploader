@@ -117,7 +117,6 @@ const Blob: React.FC<BlobProps> = ({
               mimeType: blob.mimeType,
               size: blob.size,
             });
-            console.log('---> (SELECTED_FOR_UPLOAD)-->', result);
             if (result.success) {
               if(result.uploadUrl){
                 stateSetters.setBlobUploadUrl(hash, result.uploadUrl);
@@ -127,11 +126,16 @@ const Blob: React.FC<BlobProps> = ({
               } else if(result.blobId && result.key){
                 stateSetters.setBlobId(hash, result.blobId);
                 stateSetters.setBlobKey(hash, result.key);
-                stateSetters.setBlobPreviewUrl(hash, result.previewUrl);
+                if(result.previewUrl){
+                  stateSetters.setBlobPreviewUrl(hash, result.previewUrl);
+                }
                 stateSetters.setBlobUrl(hash, result.url);
                 stateSetters.setBlobErrorMessage(hash, null);
                 stateSetters.setBlobState(hash, 'BLOB_CREATED');
               } else {
+                if(result.previewUrl){
+                  stateSetters.setBlobPreviewUrl(hash, result.previewUrl);
+                }
                 stateSetters.setBlobErrorMessage(hash, null);
                 stateSetters.setBlobState(hash, 'UPLOADED');
               }

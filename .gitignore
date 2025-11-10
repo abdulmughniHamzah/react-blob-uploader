@@ -28,3 +28,4 @@ coverage/
 # Environment
 .env
 .env.local
+dist/
