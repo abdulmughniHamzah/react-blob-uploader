@@ -16,48 +16,35 @@ export interface StylingProps {
   
   /** Individual blob container classes */
   blobContainerClassName?: string;
-  /** @deprecated Use blobContainerClassName */
-  photoContainerClassName?: string;
-  
+ 
   /** Blob image classes */
   blobImageClassName?: string;
-  /** @deprecated Use blobImageClassName */
-  photoImageClassName?: string;
-  
+
   /** Blob container when in failed state */
   blobContainerFailedClassName?: string;
-  /** @deprecated Use blobContainerFailedClassName */
-  photoContainerFailedClassName?: string;
+
   
   /** Blob image when in failed state */
   blobImageFailedClassName?: string;
-  /** @deprecated Use blobImageFailedClassName */
-  photoImageFailedClassName?: string;
-  
+
   /** Remove button classes */
   removeButtonClassName?: string;
   
   /** Main blob badge classes */
   mainBlobBadgeClassName?: string;
-  /** @deprecated Use mainBlobBadgeClassName */
-  mainPhotoBadgeClassName?: string;
-  
+
   /** Set as main button classes */
   setMainButtonClassName?: string;
   
   /** Loading spinner container classes */
   loadingContainerClassName?: string;
-  /** @deprecated Use loadingContainerClassName */
-  loadingClassName?: string;
-  
+
   /** Loading spinner icon classes */
   loadingSpinnerClassName?: string;
   
   /** Error container classes */
   errorContainerClassName?: string;
-  /** @deprecated Use errorContainerClassName */
-  errorClassName?: string;
-  
+
   /** Error message text classes */
   errorMessageClassName?: string;
   
@@ -213,13 +200,6 @@ const baseDefaultStyling = {
 export const defaultStyling: Required<StylingProps> = {
   ...baseDefaultStyling,
   // Backward compatibility aliases (same as new props)
-  photoContainerClassName: baseDefaultStyling.blobContainerClassName,
-  photoImageClassName: baseDefaultStyling.blobImageClassName,
-  photoContainerFailedClassName: baseDefaultStyling.blobContainerFailedClassName,
-  photoImageFailedClassName: baseDefaultStyling.blobImageFailedClassName,
-  mainPhotoBadgeClassName: baseDefaultStyling.mainBlobBadgeClassName,
-  loadingClassName: baseDefaultStyling.loadingContainerClassName,
-  errorClassName: baseDefaultStyling.errorContainerClassName,
 };
 
 /**
@@ -232,14 +212,6 @@ export function mergeStyling(custom?: StylingProps): Required<StylingProps> {
   return {
     ...defaultStyling,
     ...custom,
-    // Backward compatibility: old names override new names
-    blobContainerClassName: custom.blobContainerClassName || custom.photoContainerClassName || defaultStyling.blobContainerClassName,
-    blobImageClassName: custom.blobImageClassName || custom.photoImageClassName || defaultStyling.blobImageClassName,
-    blobContainerFailedClassName: custom.blobContainerFailedClassName || custom.photoContainerFailedClassName || defaultStyling.blobContainerFailedClassName,
-    blobImageFailedClassName: custom.blobImageFailedClassName || custom.photoImageFailedClassName || defaultStyling.blobImageFailedClassName,
-    mainBlobBadgeClassName: custom.mainBlobBadgeClassName || custom.mainPhotoBadgeClassName || defaultStyling.mainBlobBadgeClassName,
-    loadingContainerClassName: custom.loadingContainerClassName || custom.loadingClassName || defaultStyling.loadingContainerClassName,
-    errorContainerClassName: custom.errorContainerClassName || custom.errorClassName || defaultStyling.errorContainerClassName,
   };
 }
 

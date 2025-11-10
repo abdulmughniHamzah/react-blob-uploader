@@ -35,7 +35,3 @@ export interface BlobType {
     | 'DETACHED';
 }
 
-/**
- * @deprecated Use BlobType instead. PhotoType is kept for backward compatibility.
- */
-export type PhotoType = BlobType;

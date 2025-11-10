@@ -4,7 +4,7 @@ export { default as BlobUploader } from './components/Uploader';
 export { default } from './components/Uploader';
 
 // Core types
-export type { BlobType, PhotoType } from './types/blob'; // PhotoType is deprecated but kept for backward compatibility
+export type { BlobType } from './types/blob';
 export type { LoadedPropsType } from './components/propsType';
 export type { BlobStateSetters } from './components/Blob';
 
@@ -29,4 +29,4 @@ export { calculateChecksum } from './utils/checksum';
 /**
  * @deprecated Use BlobStateSetters instead
  */
-export type { BlobStateSetters as PhotoStateSetters } from './components/Blob';
+export type { BlobStateSetters as BlobStateSettersType } from './components/Blob';
