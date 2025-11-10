@@ -117,7 +117,7 @@ const Blob: React.FC<BlobProps> = ({
               mimeType: blob.mimeType,
               size: blob.size,
             });
-            
+            console.log('---> (SELECTED_FOR_UPLOAD)-->', result);
             if (result.success) {
               if(result.uploadUrl){
                 stateSetters.setBlobUploadUrl(hash, result.uploadUrl);
