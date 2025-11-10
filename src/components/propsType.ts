@@ -46,16 +46,14 @@ export type LoadedPropsType = {
   processRunning?: boolean;
 
   /**
-   * Initial blobs state (for editing existing entities)
-   * Component manages this internally after initialization
+   * Controlled list of blobs managed by the parent
    */
-  initialBlobs?: BlobType[];
+  blobs: BlobType[];
 
   /**
-   * Callback when blobs state changes
-   * Parent reads final state through this callback
+   * Setter provided by the parent to update the controlled blobs list
    */
-  onBlobsChange?: (blobs: BlobType[]) => void;
+  setBlobs: (next: BlobType[]) => void;
 
   /**
    * Main blob checksum (for marking featured image)

@@ -1,7 +1,5 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', { value: true });
-
 var jsxRuntime = require('react/jsx-runtime');
 var React = require('react');
 var reactDom = require('react-dom');
@@ -4749,58 +4747,57 @@ function mergeStyling(custom) {
     };
 }
 
-const BlobUploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, initialBlobs, onBlobsChange, attachableId, attachableType = 'Offer', processRunning = false, mainBlobHash: externalMainBlobHash, onMainBlobChange, mutations, styling: customStyling, }) => {
+const BlobUploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, blobs, setBlobs, attachableId, attachableType = 'Offer', processRunning = false, mainBlobHash: externalMainBlobHash, onMainBlobChange, mutations, styling: customStyling, }) => {
     const maxItems = maxBlobs ?? 10;
     const shouldUploadInstantly = instantUpload ?? true;
     const shouldAttachInstantly = instantSyncAttach ?? false;
-    const initialItems = initialBlobs ?? [];
-    const externalMain = externalMainBlobHash ?? null;
-    const onItemsChange = onBlobsChange;
+    const mainBlobHash = externalMainBlobHash ?? null;
     const onMainChange = onMainBlobChange;
-    const [blobs, setBlobs] = React.useState(initialItems);
-    const [filesMap, setFilesMap] = React.useState(new Map());
-    const [mainBlobHash, setMainBlobHash] = React.useState(externalMain);
-    const styling = React.useMemo(() => mergeStyling(customStyling), [customStyling]);
+    const filesMapRef = React.useRef(new Map());
+    const blobsRef = React.useRef(blobs);
     React.useEffect(() => {
-        onItemsChange?.(blobs);
-    }, [blobs, onItemsChange]);
+        blobsRef.current = blobs;
+    }, [blobs]);
+    const styling = React.useMemo(() => mergeStyling(customStyling), [customStyling]);
     React.useEffect(() => {
         onMainChange?.(mainBlobHash);
     }, [mainBlobHash, onMainChange]);
-    const updateBlobState = React.useCallback((checksum, updates) => {
-        setBlobs(prev => prev.map(p => p.checksum === checksum ? { ...p, ...updates } : p));
-    }, []);
-    const addBlob = React.useCallback((blob) => {
-        setBlobs(prev => [...prev, blob]);
-    }, []);
-    const removeBlobByHash = React.useCallback((checksum) => {
-        setBlobs(prev => prev.filter(p => p.checksum !== checksum));
-        if (mainBlobHash === checksum) {
-            setMainBlobHash(null);
-        }
-    }, [mainBlobHash]);
     const deleteFromFilesMap = React.useCallback((checksum) => {
-        setFilesMap(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(checksum);
-            return newMap;
-        });
+        filesMapRef.current.delete(checksum);
     }, []);
+    const setBlob = React.useCallback((hash, updates) => {
+        const current = blobsRef.current;
+        const next = current.map((p) => p.checksum === hash ? { ...p, ...updates } : p);
+        blobsRef.current = next;
+        setBlobs(next);
+    }, [setBlobs]);
+    const addBlob = React.useCallback((blob) => {
+        const current = blobsRef.current;
+        const next = [...current, blob];
+        blobsRef.current = next;
+        setBlobs(next);
+    }, [setBlobs]);
+    const removeBlobByHash = React.useCallback((checksum) => {
+        const current = blobsRef.current;
+        const next = current.filter((p) => p.checksum !== checksum);
+        blobsRef.current = next;
+        setBlobs(next);
+        if (mainBlobHash === checksum) {
+            onMainChange?.(null);
+        }
+    }, [mainBlobHash, onMainChange, setBlobs]);
     const handleFiles = React.useCallback(async (fileList) => {
         if (!fileList)
             return;
+        const current = blobsRef.current;
         const files = Array.from(fileList);
-        const validFiles = files.slice(0, maxItems - blobs.length);
+        const validFiles = files.slice(0, Math.max(maxItems - current.length, 0));
         for (const file of validFiles) {
             const checksum = await calculateChecksum(file);
-            if (blobs.some((blob) => blob.checksum === checksum)) {
+            if (current.some((blob) => blob.checksum === checksum)) {
                 continue;
             }
-            setFilesMap(prev => {
-                const newMap = new Map(prev);
-                newMap.set(checksum, file);
-                return newMap;
-            });
+            filesMapRef.current.set(checksum, file);
             const newBlob = {
                 attachmentId: null,
                 blobId: null,
@@ -4817,182 +4814,10 @@ const BlobUploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, init
             };
             addBlob(newBlob);
         }
-    }, [maxItems, blobs, addBlob]);
-    React.useCallback(async (checksum) => {
-        const blob = blobs.find(p => p.checksum === checksum);
-        if (!blob)
-            return;
-        try {
-            updateBlobState(checksum, { state: 'UPLOADING_URL_GENERATING' });
-            const result = await mutations.getUploadUrl({
-                hash: checksum,
-                name: blob.name,
-                mimeType: blob.mimeType,
-                size: blob.size,
-            });
-            if (result.success) {
-                updateBlobState(checksum, {
-                    uploadUrl: result.uploadUrl,
-                    key: result.key,
-                    state: 'UPLOADING_URL_GENERATED',
-                });
-            }
-            else {
-                updateBlobState(checksum, {
-                    errorMessage: result.error,
-                    state: 'SELECTED_FOR_UPLOAD',
-                });
-            }
-        }
-        catch (error) {
-            updateBlobState(checksum, {
-                errorMessage: error.message || 'Failed to get upload URL',
-                state: 'SELECTED_FOR_UPLOAD',
-            });
-        }
-    }, [blobs, mutations, updateBlobState]);
-    React.useCallback(async (checksum, file) => {
-        const blob = blobs.find(p => p.checksum === checksum);
-        if (!blob || !blob.uploadUrl)
-            return;
-        try {
-            updateBlobState(checksum, { state: 'UPLOADING' });
-            const result = await mutations.directUpload({
-                hash: checksum,
-                uploadUrl: blob.uploadUrl,
-                file,
-            });
-            if (result.success) {
-                updateBlobState(checksum, { state: 'UPLOADED' });
-            }
-            else {
-                updateBlobState(checksum, {
-                    errorMessage: result.error,
-                    state: 'UPLOADING_URL_GENERATED',
-                });
-            }
-        }
-        catch (error) {
-            updateBlobState(checksum, {
-                errorMessage: error.message || 'Failed to upload file',
-                state: 'UPLOADING_URL_GENERATED',
-            });
-        }
-    }, [blobs, mutations, updateBlobState]);
-    React.useCallback(async (checksum) => {
-        const blob = blobs.find(p => p.checksum === checksum);
-        if (!blob || !blob.key)
-            return;
-        try {
-            updateBlobState(checksum, { state: 'BLOB_CREATING' });
-            const result = await mutations.createBlob({
-                hash: checksum,
-                key: blob.key,
-                name: blob.name,
-                mimeType: blob.mimeType,
-                size: blob.size,
-            });
-            if (result.success) {
-                updateBlobState(checksum, {
-                    blobId: result.id,
-                    state: 'BLOB_CREATED',
-                });
-            }
-            else {
-                updateBlobState(checksum, {
-                    errorMessage: result.error,
-                    state: 'UPLOADED',
-                });
-            }
-        }
-        catch (error) {
-            updateBlobState(checksum, {
-                errorMessage: error.message || 'Failed to create blob',
-                state: 'UPLOADED',
-            });
-        }
-    }, [blobs, mutations, updateBlobState]);
-    React.useCallback(async (checksum, attId) => {
-        const blob = blobs.find(p => p.checksum === checksum);
-        if (!blob || !blob.blobId)
-            return;
-        try {
-            updateBlobState(checksum, { state: 'ATTACHING' });
-            const result = await mutations.createAttachment({
-                hash: checksum,
-                blobId: blob.blobId,
-                attachableId: attId,
-                attachableType,
-            });
-            if (result.success) {
-                updateBlobState(checksum, {
-                    attachmentId: result.id,
-                    state: 'ATTACHED',
-                });
-            }
-            else {
-                updateBlobState(checksum, {
-                    errorMessage: result.error,
-                    state: 'BLOB_CREATED',
-                });
-            }
-        }
-        catch (error) {
-            updateBlobState(checksum, {
-                errorMessage: error.message || 'Failed to create attachment',
-                state: 'BLOB_CREATED',
-            });
-        }
-    }, [blobs, mutations, attachableType, updateBlobState]);
-    React.useCallback(async (checksum) => {
-        const blob = blobs.find(p => p.checksum === checksum);
-        if (!blob || !blob.attachmentId)
-            return;
-        try {
-            updateBlobState(checksum, { state: 'DETACHING' });
-            const result = await mutations.deleteAttachment({
-                hash: checksum,
-                attachmentId: blob.attachmentId,
-            });
-            if (result.success) {
-                updateBlobState(checksum, { state: 'DETACHED' });
-            }
-            else {
-                updateBlobState(checksum, {
-                    errorMessage: result.error,
-                    state: 'ATTACHED',
-                });
-            }
-        }
-        catch (error) {
-            updateBlobState(checksum, {
-                errorMessage: error.message || 'Failed to delete attachment',
-                state: 'ATTACHED',
-            });
-        }
-    }, [blobs, mutations, updateBlobState]);
-    React.useCallback(async (checksum) => {
-        const blob = blobs.find(p => p.checksum === checksum);
-        if (!blob || !blob.key)
-            return;
-        try {
-            const result = await mutations.getPreviewUrl({
-                hash: checksum,
-                key: blob.key,
-            });
-            if (result.success) {
-                updateBlobState(checksum, { previewUrl: result.previewUrl });
-            }
-        }
-        catch (error) {
-            console.error('Failed to get preview URL:', error);
-        }
-    }, [blobs, mutations, updateBlobState]);
+    }, [maxItems, addBlob]);
     const stateSetters = React.useMemo(() => ({
-        setBlob: (hash, updates) => {
-            updateBlobState(hash, updates);
-        },
-    }), [updateBlobState]);
+        setBlob,
+    }), [setBlob]);
     const sensors = useSensors(useSensor(PointerSensor, {
         activationConstraint: {
             distance: 5,
@@ -5000,20 +4825,17 @@ const BlobUploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, init
     }));
     const handleDragEnd = React.useCallback((event) => {
         const { active, over } = event;
-        if (active.id !== over?.id) {
-            setBlobs(prev => {
-                const oldIndex = prev.findIndex((p) => p.checksum === active.id);
-                const newIndex = prev.findIndex((p) => p.checksum === over.id);
-                return arrayMove(prev, oldIndex, newIndex);
-            });
+        if (!over || active.id === over.id)
+            return;
+        const current = blobsRef.current;
+        const oldIndex = current.findIndex((p) => p.checksum === active.id);
+        const newIndex = current.findIndex((p) => p.checksum === over.id);
+        if (oldIndex >= 0 && newIndex >= 0) {
+            const next = arrayMove(current, oldIndex, newIndex);
+            blobsRef.current = next;
+            setBlobs(next);
         }
-    }, []);
-    const handleSetMainBlobHash = React.useCallback((checksum) => {
-        setMainBlobHash(checksum);
-    }, []);
-    const handleResetMainBlobHash = React.useCallback(() => {
-        setMainBlobHash(null);
-    }, []);
+    }, [setBlobs]);
     return (jsxRuntime.jsx(DndContext, { sensors: sensors, collisionDetection: closestCenter, onDragEnd: handleDragEnd, children: jsxRuntime.jsx(SortableContext, { items: blobs.map((blob) => blob.checksum ?? ''), strategy: rectSortingStrategy, children: jsxRuntime.jsxs("div", { className: styling.containerClassName, children: [blobs.length < maxItems && !processRunning && (jsxRuntime.jsxs("label", { title: 'Upload File', className: styling.uploadButtonClassName, children: [jsxRuntime.jsx("span", { className: 'text-center', children: "Upload" }), jsxRuntime.jsx("input", { type: 'file', accept: 'image/*', multiple: true, onChange: (e) => {
                                     if (e.target.files && e.target.files.length > 0) {
                                         handleFiles(e.target.files);
@@ -5023,9 +4845,9 @@ const BlobUploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, init
                                     e.target.value = '';
                                 }, className: 'hidden' })] })), blobs
                         .filter((blob) => blob.checksum)
-                        .map((blob) => (jsxRuntime.jsx(SortableBlob, { id: blob.checksum ?? '', blob: blob, filesMap: filesMap, instantUpload: shouldUploadInstantly, instantSyncAttach: shouldAttachInstantly, attachableId: attachableId, attachableType: attachableType, mainBlobHash: mainBlobHash, setMainBlobHash: handleSetMainBlobHash, deleteFromFilesMap: deleteFromFilesMap, removeBlobByHash: removeBlobByHash, resetMainBlobHash: handleResetMainBlobHash, mutations: mutations, stateSetters: stateSetters, styling: styling }, blob.checksum ?? '')))] }) }) }));
+                        .map((blob) => (jsxRuntime.jsx(SortableBlob, { id: blob.checksum ?? '', blob: blob, instantUpload: shouldUploadInstantly, instantSyncAttach: shouldAttachInstantly, attachableId: attachableId, attachableType: attachableType, mainBlobHash: mainBlobHash, setMainBlobHash: (checksum) => onMainChange?.(checksum), deleteFromFilesMap: deleteFromFilesMap, removeBlobByHash: removeBlobByHash, resetMainBlobHash: () => onMainChange?.(null), mutations: mutations, stateSetters: stateSetters, styling: styling, filesMap: filesMapRef.current }, blob.checksum ?? '')))] }) }) }));
 };
 
+exports.BlobUploader = BlobUploader;
 exports.calculateChecksum = calculateChecksum;
-exports.default = BlobUploader;
 //# sourceMappingURL=index.js.map

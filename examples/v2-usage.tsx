@@ -63,8 +63,8 @@ export const BasicUsage = () => {
   return (
     <div>
       <BlobUploader
-        initialBlobs={blobs}
-        onBlobsChange={setBlobs}
+        blobs={blobs}
+        setBlobs={setBlobs}
         mainBlobHash={mainBlobHash}
         onMainBlobChange={setMainBlobHash}
         attachableId={123}
@@ -94,8 +94,8 @@ export const CustomStyling = () => {
 
   return (
     <BlobUploader
-      initialBlobs={blobs}
-      onBlobsChange={setBlobs}
+        blobs={blobs}
+        setBlobs={setBlobs}
       mainBlobHash={mainBlobHash}
       onMainBlobChange={setMainBlobHash}
       attachableId={123}
@@ -129,8 +129,8 @@ export const EditMode = () => {
 
   return (
     <BlobUploader
-      initialBlobs={blobs}
-      onBlobsChange={setBlobs}
+      blobs={blobs}
+      setBlobs={setBlobs}
       mainBlobHash={mainBlobHash}
       onMainBlobChange={setMainBlobHash}
       attachableId={123}

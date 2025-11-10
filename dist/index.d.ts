@@ -1,4 +1,4 @@
-export { default } from './components/Uploader';
+export { default as BlobUploader } from './components/Uploader';
 export type { BlobType } from './types/blob';
 export type { LoadedPropsType } from './components/propsType';
 export type { BlobStateSetters } from './components/Blob';

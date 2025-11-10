@@ -9,8 +9,8 @@ export type LoadedPropsType = {
     instantUpload?: boolean;
     instantSyncAttach?: boolean;
     processRunning?: boolean;
-    initialBlobs?: BlobType[];
-    onBlobsChange?: (blobs: BlobType[]) => void;
+    blobs: BlobType[];
+    setBlobs: (next: BlobType[]) => void;
     mainBlobHash?: string | null;
     onMainBlobChange?: (checksum: string | null) => void;
     mutations: MutationCallbacks;

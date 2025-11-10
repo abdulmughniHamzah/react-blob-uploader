@@ -1,5 +1,5 @@
 // Main component - self-contained with internal state management
-export { default } from './components/Uploader';
+export { default as BlobUploader } from './components/Uploader';
 
 // Core types
 export type { BlobType } from './types/blob';
