@@ -181,7 +181,9 @@ const Blob: React.FC<BlobProps> = ({
             if (result.success) {
               stateSetters.setBlobId(hash, result.id);
               stateSetters.setBlobKey(hash, result.key);
-              stateSetters.setBlobPreviewUrl(hash, result.previewUrl);
+              if(result.previewUrl){
+                stateSetters.setBlobPreviewUrl(hash, result.previewUrl);
+              }
               stateSetters.setBlobUrl(hash, result.url);
               stateSetters.setBlobErrorMessage(hash, null);
               stateSetters.setBlobState(hash, 'BLOB_CREATED');
