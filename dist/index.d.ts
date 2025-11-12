@@ -7,4 +7,5 @@ export type { BlobStateSetters } from './components/Blob';
 export type { MutationCallbacks, GetUploadUrlResult, DirectUploadResult, CreateBlobResult, CreateAttachmentResult, DeleteAttachmentResult, GetPreviewUrlResult, } from './types/mutations';
 export type { StylingProps } from './types/styling';
 export { calculateChecksum } from './utils/checksum';
+export { isBlobTransitioning, hasTransitioningBlobs } from './utils/blobHelpers';
 //# sourceMappingURL=index.d.ts.map

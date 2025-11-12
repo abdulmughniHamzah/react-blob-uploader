@@ -119,6 +119,7 @@ const BlobUploader = ({
         state: 'SELECTED_FOR_UPLOAD',
         errorMessage: null,
         url: null,
+        retryCount: 3, // Initialize with 3 retries
       };
       addBlob(newBlob);
     }

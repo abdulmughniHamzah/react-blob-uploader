@@ -50,35 +50,27 @@ const Blob: React.FC<BlobProps> = ({
   const handleRemoveBlob = () => {
     if (!blob.checksum) return;
 
-    if (blob.state === 'ATTACHED' && instantUpload) {
-      setBlob(blob.checksum, { state: 'MARKED_FOR_DETACH' });
-      return;
+    if (blob.state === 'ATTACHED') {
+      if (instantSyncAttach) {  
+        setBlob(blob.checksum, { state: 'MARKED_FOR_DETACH' });
+      } else {
+        setBlob(blob.checksum, { state: 'DETACHED' });
+      }
+    }else{
+      unlinkBlob();
     }
 
-    setBlob(blob.checksum, { state: 'DETACHED' });
   };
 
   const handleRetry = () => {
-    if (!blob.checksum) return;
+    if (!blob.checksum || !blob.errorMessage) return;
 
-    // Map failed states to their retry states
-    switch (blob.state) {
-      case 'UPLOADING_URL_GENERATION_FAILED':
-        setBlob(blob.checksum, { state: 'SELECTED_FOR_UPLOAD' });
-        break;
-      case 'UPLOAD_FAILED':
-        setBlob(blob.checksum, { state: 'UPLOADING_URL_GENERATED', errorMessage: null });
-        break;
-      case 'BLOB_CREATION_FAILED':
-        setBlob(blob.checksum, { state: 'UPLOADED', errorMessage: null });
-        break;
-      case 'ATTACHMENT_FAILED':
-        setBlob(blob.checksum, { state: 'BLOB_CREATED', errorMessage: null });
-        break;
-      case 'DETACHMENT_FAILED':
-        setBlob(blob.checksum, { state: 'MARKED_FOR_DETACH', errorMessage: null });
-        break;
-    }
+    // Clear error and decrement retry count - user must click to retry
+    const newRetryCount = blob.retryCount - 1;
+    setBlob(blob.checksum, { 
+      errorMessage: null,
+      retryCount: newRetryCount,
+    });
   };
 
   const unlinkBlob = () => {
@@ -98,8 +90,8 @@ const Blob: React.FC<BlobProps> = ({
       
       switch (blob.state) {
         case 'SELECTED_FOR_UPLOAD':
-          // Only start upload if instantUpload is true
-          if (instantUpload && blob.name && blob.mimeType && blob.size) {
+          // Only start upload if instantUpload is true, no error, and not already processing
+          if (instantUpload && blob.name && blob.mimeType && blob.size && !blob.errorMessage) {
             setBlob(hash, { state: 'UPLOADING_URL_GENERATING' });
             
             const result = await mutations.getUploadUrl({
@@ -134,16 +126,19 @@ const Blob: React.FC<BlobProps> = ({
                 });
               }
             } else {
+              // Stay at SELECTED_FOR_UPLOAD, set error and decrement retry count
+              const newRetryCount = blob.retryCount - 1;
               setBlob(hash, {
                 errorMessage: result.error,
-                state: 'UPLOADING_URL_GENERATION_FAILED',
+                retryCount: newRetryCount,
               });
             }
           }
           break;
 
         case 'UPLOADING_URL_GENERATED':
-          if (file && blob.uploadUrl) {
+          // Only proceed if we have file, uploadUrl, and no error
+          if (file && blob.uploadUrl && !blob.errorMessage) {
             setBlob(hash, { state: 'UPLOADING' });
             
             const result = await mutations.directUpload({
@@ -158,16 +153,20 @@ const Blob: React.FC<BlobProps> = ({
                 state: 'UPLOADED',
               });
             } else {
+              // Stay at UPLOADING_URL_GENERATED, set error and decrement retry count
+              const newRetryCount = blob.retryCount - 1;
               setBlob(hash, {
                 errorMessage: result.error,
-                state: 'UPLOAD_FAILED',
+                retryCount: newRetryCount,
+                state: 'UPLOADING_URL_GENERATED',
               });
             }
           }
           break;
 
         case 'UPLOADED':
-          if (blob.key && blob.name && blob.mimeType && blob.size) {
+          // Only proceed if we have all required data and no error
+          if (blob.key && blob.name && blob.mimeType && blob.size && !blob.errorMessage) {
             setBlob(hash, { state: 'BLOB_CREATING' });
             
             const result = await mutations.createBlob({
@@ -188,16 +187,19 @@ const Blob: React.FC<BlobProps> = ({
                 state: 'BLOB_CREATED',
               });
             } else {
+              // Stay at UPLOADED, set error and decrement retry count
+              const newRetryCount = blob.retryCount - 1;
               setBlob(hash, {
                 errorMessage: result.error,
-                state: 'BLOB_CREATION_FAILED',
+                retryCount: newRetryCount,
+                state: 'UPLOADED',
               });
             }
           }
           break;
 
         case 'BLOB_CREATED':
-          // Only create attachment when instantSyncAttach is true and we have required data.
+          // Only create attachment when instantSyncAttach is true, we have required data, and no error
           if (instantSyncAttach && attachableId && blob.blobId && !blob.errorMessage) {
             setBlob(hash, { state: 'ATTACHING' });
             
@@ -215,9 +217,12 @@ const Blob: React.FC<BlobProps> = ({
                 state: 'ATTACHED',
               });
             } else {
+              // Stay at BLOB_CREATED, set error and decrement retry count
+              const newRetryCount = blob.retryCount - 1;
               setBlob(hash, {
                 errorMessage: result.error,
-                state: 'ATTACHMENT_FAILED',
+                retryCount: newRetryCount,
+                state: 'BLOB_CREATED',
               });
             }
           }
@@ -233,7 +238,8 @@ const Blob: React.FC<BlobProps> = ({
           break;
 
         case 'MARKED_FOR_DETACH':
-          if (instantUpload && blob.attachmentId) {
+          // Only proceed if instantSyncAttach is true, we have attachmentId, and no error
+          if (instantSyncAttach && blob.attachmentId && !blob.errorMessage) {
             setBlob(hash, { state: 'DETACHING' });
             try {
               await mutations.deleteAttachment({
@@ -246,11 +252,14 @@ const Blob: React.FC<BlobProps> = ({
                 attachmentId: null,
               });
             } catch (error) {
+              // Stay at MARKED_FOR_DETACH, set error and decrement retry count
               const message =
                 error instanceof Error ? error.message : 'Failed to detach blob';
+              const newRetryCount = blob.retryCount - 1;
               setBlob(hash, {
                 errorMessage: message,
-                state: 'DETACHMENT_FAILED',
+                retryCount: newRetryCount,
+                state: 'MARKED_FOR_DETACH',
               });
             }
           }
@@ -282,28 +291,23 @@ const Blob: React.FC<BlobProps> = ({
     return null;
   }
 
-  // Check if blob is in a failed state
-  const isInFailedState = [
-    'UPLOADING_URL_GENERATION_FAILED',
-    'UPLOAD_FAILED',
-    'BLOB_CREATION_FAILED',
-    'ATTACHMENT_FAILED',
-    'DETACHMENT_FAILED',
-  ].includes(blob.state ?? '');
+  // Check if blob has an error (stays in same state with error)
+  const hasError = !!blob.errorMessage;
+  const canRetry = hasError && blob.retryCount > 0;
 
   return (
     <div 
-      className={`${styling.blobContainerClassName} ${isInFailedState ? styling.blobContainerFailedClassName : ''}`}
+      className={`${styling.blobContainerClassName} ${hasError ? styling.blobContainerFailedClassName : ''}`}
       title={blob.name ?? ''}
     >
       <img
         src={blob.previewUrl!}
         alt={`${blob.name}`}
-        className={`${styling.blobImageClassName} ${isInFailedState ? styling.blobImageFailedClassName : ''}`}
+        className={`${styling.blobImageClassName} ${hasError ? styling.blobImageFailedClassName : ''}`}
       />
 
-      {/* Loading spinner - shows when blob is in progress (but not in failed state) */}
-      {!isInFailedState &&
+      {/* Loading spinner - shows when blob is in progress (but not with error) */}
+      {!hasError &&
         blob.state !== 'ATTACHED' &&
         instantUpload &&
         (blob.state !== 'BLOB_CREATED' || attachableId) && (
@@ -316,7 +320,7 @@ const Blob: React.FC<BlobProps> = ({
       {blob.errorMessage && (
         <div className={styling.errorContainerClassName}>
           <div className={styling.errorMessageClassName}>{blob.errorMessage}</div>
-          {isInFailedState && (
+          {canRetry && (
             <button
               type='button'
               onClick={handleRetry}
@@ -347,7 +351,8 @@ const Blob: React.FC<BlobProps> = ({
       )}
 
       {/* Set as main blob button */}
-      {mainBlobHash !== blob.checksum && blob.state === 'ATTACHED' && (
+      {mainBlobHash !== blob.checksum && 
+       (blob.state === 'ATTACHED' || blob.state === 'BLOB_CREATED') && (
         <button
           type='button'
           onClick={() => setMainBlobHash(blob.checksum!)}

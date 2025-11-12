@@ -4405,32 +4405,26 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
     const handleRemoveBlob = () => {
         if (!blob.checksum)
             return;
-        if (blob.state === 'ATTACHED' && instantUpload) {
-            setBlob(blob.checksum, { state: 'MARKED_FOR_DETACH' });
-            return;
+        if (blob.state === 'ATTACHED') {
+            if (instantSyncAttach) {
+                setBlob(blob.checksum, { state: 'MARKED_FOR_DETACH' });
+            }
+            else {
+                setBlob(blob.checksum, { state: 'DETACHED' });
+            }
         }
-        setBlob(blob.checksum, { state: 'DETACHED' });
+        else {
+            unlinkBlob();
+        }
     };
     const handleRetry = () => {
-        if (!blob.checksum)
+        if (!blob.checksum || !blob.errorMessage)
             return;
-        switch (blob.state) {
-            case 'UPLOADING_URL_GENERATION_FAILED':
-                setBlob(blob.checksum, { state: 'SELECTED_FOR_UPLOAD' });
-                break;
-            case 'UPLOAD_FAILED':
-                setBlob(blob.checksum, { state: 'UPLOADING_URL_GENERATED', errorMessage: null });
-                break;
-            case 'BLOB_CREATION_FAILED':
-                setBlob(blob.checksum, { state: 'UPLOADED', errorMessage: null });
-                break;
-            case 'ATTACHMENT_FAILED':
-                setBlob(blob.checksum, { state: 'BLOB_CREATED', errorMessage: null });
-                break;
-            case 'DETACHMENT_FAILED':
-                setBlob(blob.checksum, { state: 'MARKED_FOR_DETACH', errorMessage: null });
-                break;
-        }
+        const newRetryCount = blob.retryCount - 1;
+        setBlob(blob.checksum, {
+            errorMessage: null,
+            retryCount: newRetryCount,
+        });
     };
     const unlinkBlob = () => {
         deleteFromFilesMap(blob.checksum);
@@ -4446,7 +4440,7 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
             const hash = blob.checksum;
             switch (blob.state) {
                 case 'SELECTED_FOR_UPLOAD':
-                    if (instantUpload && blob.name && blob.mimeType && blob.size) {
+                    if (instantUpload && blob.name && blob.mimeType && blob.size && !blob.errorMessage) {
                         setBlob(hash, { state: 'UPLOADING_URL_GENERATING' });
                         const result = await mutations.getUploadUrl({
                             hash,
@@ -4483,15 +4477,16 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             }
                         }
                         else {
+                            const newRetryCount = blob.retryCount - 1;
                             setBlob(hash, {
                                 errorMessage: result.error,
-                                state: 'UPLOADING_URL_GENERATION_FAILED',
+                                retryCount: newRetryCount,
                             });
                         }
                     }
                     break;
                 case 'UPLOADING_URL_GENERATED':
-                    if (file && blob.uploadUrl) {
+                    if (file && blob.uploadUrl && !blob.errorMessage) {
                         setBlob(hash, { state: 'UPLOADING' });
                         const result = await mutations.directUpload({
                             hash,
@@ -4505,15 +4500,17 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             });
                         }
                         else {
+                            const newRetryCount = blob.retryCount - 1;
                             setBlob(hash, {
                                 errorMessage: result.error,
-                                state: 'UPLOAD_FAILED',
+                                retryCount: newRetryCount,
+                                state: 'UPLOADING_URL_GENERATED',
                             });
                         }
                     }
                     break;
                 case 'UPLOADED':
-                    if (blob.key && blob.name && blob.mimeType && blob.size) {
+                    if (blob.key && blob.name && blob.mimeType && blob.size && !blob.errorMessage) {
                         setBlob(hash, { state: 'BLOB_CREATING' });
                         const result = await mutations.createBlob({
                             hash,
@@ -4533,9 +4530,11 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             });
                         }
                         else {
+                            const newRetryCount = blob.retryCount - 1;
                             setBlob(hash, {
                                 errorMessage: result.error,
-                                state: 'BLOB_CREATION_FAILED',
+                                retryCount: newRetryCount,
+                                state: 'UPLOADED',
                             });
                         }
                     }
@@ -4557,9 +4556,11 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             });
                         }
                         else {
+                            const newRetryCount = blob.retryCount - 1;
                             setBlob(hash, {
                                 errorMessage: result.error,
-                                state: 'ATTACHMENT_FAILED',
+                                retryCount: newRetryCount,
+                                state: 'BLOB_CREATED',
                             });
                         }
                     }
@@ -4570,7 +4571,7 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                     unlinkBlob();
                     break;
                 case 'MARKED_FOR_DETACH':
-                    if (instantUpload && blob.attachmentId) {
+                    if (instantSyncAttach && blob.attachmentId && !blob.errorMessage) {
                         setBlob(hash, { state: 'DETACHING' });
                         try {
                             await mutations.deleteAttachment({
@@ -4585,9 +4586,11 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                         }
                         catch (error) {
                             const message = error instanceof Error ? error.message : 'Failed to detach blob';
+                            const newRetryCount = blob.retryCount - 1;
                             setBlob(hash, {
                                 errorMessage: message,
-                                state: 'DETACHMENT_FAILED',
+                                retryCount: newRetryCount,
+                                state: 'MARKED_FOR_DETACH',
                             });
                         }
                     }
@@ -4611,17 +4614,13 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
         ['DETACHED', 'MARKED_FOR_DETACH'].includes(blob.state ?? '')) {
         return null;
     }
-    const isInFailedState = [
-        'UPLOADING_URL_GENERATION_FAILED',
-        'UPLOAD_FAILED',
-        'BLOB_CREATION_FAILED',
-        'ATTACHMENT_FAILED',
-        'DETACHMENT_FAILED',
-    ].includes(blob.state ?? '');
-    return (jsxRuntime.jsxs("div", { className: `${styling.blobContainerClassName} ${isInFailedState ? styling.blobContainerFailedClassName : ''}`, title: blob.name ?? '', children: [jsxRuntime.jsx("img", { src: blob.previewUrl, alt: `${blob.name}`, className: `${styling.blobImageClassName} ${isInFailedState ? styling.blobImageFailedClassName : ''}` }), !isInFailedState &&
+    const hasError = !!blob.errorMessage;
+    const canRetry = hasError && blob.retryCount > 0;
+    return (jsxRuntime.jsxs("div", { className: `${styling.blobContainerClassName} ${hasError ? styling.blobContainerFailedClassName : ''}`, title: blob.name ?? '', children: [jsxRuntime.jsx("img", { src: blob.previewUrl, alt: `${blob.name}`, className: `${styling.blobImageClassName} ${hasError ? styling.blobImageFailedClassName : ''}` }), !hasError &&
                 blob.state !== 'ATTACHED' &&
                 instantUpload &&
-                (blob.state !== 'BLOB_CREATED' || attachableId) && (jsxRuntime.jsx("div", { className: styling.loadingContainerClassName, children: jsxRuntime.jsx(Loader, { className: styling.loadingSpinnerClassName }) })), blob.errorMessage && (jsxRuntime.jsxs("div", { className: styling.errorContainerClassName, children: [jsxRuntime.jsx("div", { className: styling.errorMessageClassName, children: blob.errorMessage }), isInFailedState && (jsxRuntime.jsx("button", { type: 'button', onClick: handleRetry, className: styling.retryButtonClassName, title: "Retry upload", children: "Retry" }))] })), jsxRuntime.jsx("button", { type: 'button', onClick: handleRemoveBlob, className: styling.removeButtonClassName, title: 'Remove blob', children: jsxRuntime.jsx(X, { className: styling.removeButtonIconClassName }) }), mainBlobHash === blob.checksum && (jsxRuntime.jsx("div", { className: styling.mainBlobBadgeClassName, children: "Main" })), mainBlobHash !== blob.checksum && blob.state === 'ATTACHED' && (jsxRuntime.jsx("button", { type: 'button', onClick: () => setMainBlobHash(blob.checksum), className: styling.setMainButtonClassName, title: 'Set as main blob', children: "Set Main" }))] }));
+                (blob.state !== 'BLOB_CREATED' || attachableId) && (jsxRuntime.jsx("div", { className: styling.loadingContainerClassName, children: jsxRuntime.jsx(Loader, { className: styling.loadingSpinnerClassName }) })), blob.errorMessage && (jsxRuntime.jsxs("div", { className: styling.errorContainerClassName, children: [jsxRuntime.jsx("div", { className: styling.errorMessageClassName, children: blob.errorMessage }), canRetry && (jsxRuntime.jsx("button", { type: 'button', onClick: handleRetry, className: styling.retryButtonClassName, title: "Retry upload", children: "Retry" }))] })), jsxRuntime.jsx("button", { type: 'button', onClick: handleRemoveBlob, className: styling.removeButtonClassName, title: 'Remove blob', children: jsxRuntime.jsx(X, { className: styling.removeButtonIconClassName }) }), mainBlobHash === blob.checksum && (jsxRuntime.jsx("div", { className: styling.mainBlobBadgeClassName, children: "Main" })), mainBlobHash !== blob.checksum &&
+                (blob.state === 'ATTACHED' || blob.state === 'BLOB_CREATED') && (jsxRuntime.jsx("button", { type: 'button', onClick: () => setMainBlobHash(blob.checksum), className: styling.setMainButtonClassName, title: 'Set as main blob', children: "Set Main" }))] }));
 };
 
 function SortableBlob({ id, blob, filesMap, instantUpload, instantSyncAttach, attachableId, attachableType, mainBlobHash, setMainBlobHash, deleteFromFilesMap, removeBlobByHash, resetMainBlobHash, mutations, stateSetters, styling, }) {
@@ -4813,6 +4812,7 @@ const BlobUploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, blob
                 state: 'SELECTED_FOR_UPLOAD',
                 errorMessage: null,
                 url: null,
+                retryCount: 3,
             };
             addBlob(newBlob);
         }
@@ -4850,7 +4850,29 @@ const BlobUploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, blob
                         .map((blob) => (jsxRuntime.jsx(SortableBlob, { id: blob.checksum ?? '', blob: blob, instantUpload: shouldUploadInstantly, instantSyncAttach: shouldAttachInstantly, attachableId: attachableId, attachableType: attachableType, mainBlobHash: mainBlobHash, setMainBlobHash: (checksum) => onMainChange?.(checksum), deleteFromFilesMap: deleteFromFilesMap, removeBlobByHash: removeBlobByHash, resetMainBlobHash: () => onMainChange?.(null), mutations: mutations, stateSetters: stateSetters, styling: styling, filesMap: filesMapRef.current }, blob.checksum ?? '')))] }) }) }));
 };
 
+function isBlobTransitioning(blob, instantUpload, instantSyncAttach) {
+    if (blob.errorMessage) {
+        return false;
+    }
+    const state = blob.state;
+    if (!state || state === 'DETACHED') {
+        return false;
+    }
+    if (!instantUpload) {
+        return state !== 'SELECTED_FOR_UPLOAD' && state !== 'ATTACHED';
+    }
+    if (!instantSyncAttach) {
+        return state !== 'BLOB_CREATED' && state !== 'ATTACHED';
+    }
+    return state !== 'ATTACHED';
+}
+function hasTransitioningBlobs(blobs, instantUpload, instantSyncAttach) {
+    return blobs.some((blob) => isBlobTransitioning(blob, instantUpload, instantSyncAttach));
+}
+
 exports.BlobUploader = BlobUploader;
 exports.calculateChecksum = calculateChecksum;
 exports.default = BlobUploader;
+exports.hasTransitioningBlobs = hasTransitioningBlobs;
+exports.isBlobTransitioning = isBlobTransitioning;
 //# sourceMappingURL=index.js.map

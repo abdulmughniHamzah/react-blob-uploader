@@ -6,6 +6,12 @@
 - 🔄 Update this file and supporting docs whenever component APIs or structure change
 - 📝 Sync any library modifications with the published `README.md` documentation immediately.
 
+## 📄 Documentation Rules
+- ❌ NEVER create separate documentation files (like REFACTORING.md, CHANGES.md, MIGRATION.md, etc.)
+- ✅ ALWAYS update the existing `README.md` to reflect the current state of the project
+- ✅ Keep README.md as the single source of truth for all library documentation
+- ✅ Document breaking changes, new features, and API changes directly in README.md
+
 ## 🧭 Working Expectations
 - Maintain framework-agnostic patterns and flat mutation results
 - Keep Tailwind-based styling overrides consistent

@@ -24,3 +24,4 @@ export type { StylingProps } from './types/styling';
 
 // Utils
 export { calculateChecksum } from './utils/checksum';
+export { isBlobTransitioning, hasTransitioningBlobs } from './utils/blobHelpers';
