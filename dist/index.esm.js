@@ -4495,7 +4495,6 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             setBlob(hash, {
                                 errorMessage: null,
                                 state: 'UPLOADED',
-                                key: blob.key,
                             });
                         }
                         else {
