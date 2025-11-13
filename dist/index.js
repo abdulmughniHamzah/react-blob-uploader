@@ -4448,6 +4448,7 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             mimeType: blob.mimeType,
                             size: blob.size,
                         });
+                        console.log('UPLOADING_URL_GENERATING>', result);
                         if (result.success) {
                             if (result.uploadUrl) {
                                 setBlob(hash, {
