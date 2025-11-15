@@ -4522,7 +4522,6 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             setBlob(hash, {
                                 blobId: result.id,
                                 key: result.key,
-                                previewUrl: result.previewUrl ?? result.url ?? null,
                                 url: result.url ?? null,
                                 errorMessage: null,
                                 state: 'BLOB_CREATED',
