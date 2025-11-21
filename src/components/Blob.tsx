@@ -67,11 +67,9 @@ const Blob: React.FC<BlobProps> = ({
   const handleRetry = () => {
     if (!blob.checksum || !blob.errorMessage) return;
 
-    // Clear error and decrement retry count - user must click to retry
-    const newRetryCount = blob.retryCount - 1;
-    setBlob(blob.checksum, { 
+    // Clear error to allow retry - retryCount already decremented when error occurred
+    setBlob(blob.checksum, {
       errorMessage: null,
-      retryCount: newRetryCount,
     });
   };
 

@@ -4416,10 +4416,8 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
     const handleRetry = () => {
         if (!blob.checksum || !blob.errorMessage)
             return;
-        const newRetryCount = blob.retryCount - 1;
         setBlob(blob.checksum, {
             errorMessage: null,
-            retryCount: newRetryCount,
         });
     };
     const unlinkBlob = () => {
