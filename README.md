@@ -2,6 +2,11 @@
 
 A self-contained, production-ready React component for file uploads (images, documents, videos, etc.) with drag & drop, reordering, and cloud direct upload support.
 
+## Workspace Development Contract (Mandatory)
+
+- Internal imports in workspace services/packages should use alias style `@/...` where path mapping is configured.
+- When integrating with workspace serverless backends, endpoint design must follow RESTful conventions.
+
 ## Features
 
 - 🎯 **Framework-agnostic**: No dependency on Redux, Zustand, or any specific state management library
