@@ -2,6 +2,8 @@
 
 A self-contained, production-ready React component for file uploads (images, documents, videos, etc.) with drag & drop, reordering, and cloud direct upload support.
 
+Local build output under `dist/` is treated as generated output and is git-ignored.
+
 ## Workspace Development Contract (Mandatory)
 
 - Internal imports in workspace services/packages should use alias style `@/...` where path mapping is configured.
