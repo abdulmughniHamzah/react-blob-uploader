@@ -5,6 +5,7 @@
 export interface BlobType {
   errorMessage: string | null;
   key: string | null;
+  assetRef?: string | null;
   name: string | null;
   uploadUrl: string | null;
   previewUrl: string | null;
@@ -30,4 +31,3 @@ export interface BlobType {
     | 'DETACHING'
     | 'DETACHED';
 }
-

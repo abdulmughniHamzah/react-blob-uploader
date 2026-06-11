@@ -14,7 +14,16 @@
  */
 
 export type GetUploadUrlResult =
-  | { success: true; hash: string; uploadUrl: string | null; key: string, blobId: number | null,  previewUrl: string | null, url: string | null}
+  | {
+      success: true;
+      hash: string;
+      uploadUrl: string | null;
+      key: string;
+      blobId: number | null;
+      assetRef?: string | null;
+      previewUrl: string | null;
+      url: string | null;
+    }
   | { success: false; hash: string; error: string };
 
 export type DirectUploadResult =
@@ -22,7 +31,15 @@ export type DirectUploadResult =
   | { success: false; hash: string; error: string };
 
 export type CreateBlobResult =
-  | { success: true; hash: string; id: number; key: string; url: string, previewUrl: string | null }
+  | {
+      success: true;
+      hash: string;
+      id: number;
+      key: string;
+      assetRef?: string | null;
+      url: string;
+      previewUrl: string | null;
+    }
   | { success: false; hash: string; error: string };
 
 export type CreateAttachmentResult =
@@ -110,4 +127,3 @@ export interface MutationCallbacks {
  * Optional partial mutations for cases where some operations are not needed
  */
 export type PartialMutationCallbacks = Partial<MutationCallbacks>;
-

@@ -189,6 +189,27 @@ Configure upload behavior with two props:
 
 **Note**: The "Set Main" button is only shown for blobs in their final synchronized state (not in transition or error state).
 
+### Centralized Media Adapter Pattern
+
+The uploader stays backend-agnostic. In a centralized-media architecture, keep
+the same mutation callback shape but map it like this:
+
+1. `getUploadUrl`
+   - request a thin domain-owned media grant first
+   - call centralized `POST /media/upload-sessions`
+   - return the direct-upload URL plus any adapter metadata needed for later steps
+2. `directUpload`
+   - upload the file bytes to the returned object-storage URL
+3. `createBlob`
+   - call centralized `POST /media/assets` to finalize the asset
+   - return the finalized logical `assetRef` plus any serving/public URL metadata the parent app needs
+4. `createAttachment`
+   - call the owning domain attach/update endpoint
+
+This keeps the component reusable while letting applications migrate from
+domain-owned blob endpoints to centralized upload ownership without rewriting
+the UI state machine.
+
 ## API Reference
 
 ### Props

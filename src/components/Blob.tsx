@@ -113,6 +113,7 @@ const Blob: React.FC<BlobProps> = ({
                 setBlob(hash, {
                   blobId: result.blobId,
                   key: result.key,
+                  assetRef: result.assetRef ?? blob.assetRef ?? null,
                   previewUrl: result.previewUrl ?? blob.previewUrl,
                   url: result.url ?? blob.url,
                   errorMessage: null,
@@ -121,6 +122,7 @@ const Blob: React.FC<BlobProps> = ({
               } else if (result.key) {
                 setBlob(hash, {
                   key: result.key,
+                  assetRef: result.assetRef ?? blob.assetRef ?? null,
                   previewUrl: result.previewUrl ?? blob.previewUrl,
                   url: result.url ?? blob.url,
                   errorMessage: null,
@@ -184,6 +186,7 @@ const Blob: React.FC<BlobProps> = ({
               setBlob(hash, {
                 blobId: result.id,
                 key: result.key,
+                assetRef: result.assetRef ?? blob.assetRef ?? null,
                 // previewUrl: result.previewUrl ?? result.url ?? null,
                 url: result.url ?? null,
                 errorMessage: null,
@@ -373,4 +376,3 @@ const Blob: React.FC<BlobProps> = ({
 };
 
 export default Blob;
-
