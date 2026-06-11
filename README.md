@@ -56,6 +56,7 @@ function MyComponent() {
         uploadUrl: data.uploadUrl,
         key: data.key,
         blobId: data.id,
+        assetRef: data.assetRef,
         previewUrl: data.previewUrl,
         url: data.url,
       };
@@ -81,6 +82,7 @@ function MyComponent() {
         hash,
         id: data.id,
         key: data.key,
+        assetRef: data.assetRef,
         url: data.url,
         previewUrl: data.previewUrl,
       };
@@ -210,6 +212,10 @@ This keeps the component reusable while letting applications migrate from
 domain-owned blob endpoints to centralized upload ownership without rewriting
 the UI state machine.
 
+When centralized media returns a logical `assetRef`, the uploader preserves it
+through both the upload-url and create-blob transitions so parent forms can
+submit finalized media references directly.
+
 ## API Reference
 
 ### Props
@@ -256,6 +262,7 @@ interface BlobType {
   // Upload data
   uploadUrl: string | null;             // Presigned upload URL
   key: string | null;                   // Storage key/path
+  assetRef?: string | null;             // Logical finalized media reference
   mimeType: string | null;              // File MIME type
   size: number | null;                  // File size in bytes
   
@@ -321,7 +328,7 @@ interface MutationCallbacks {
 
 // Result types (all mutations follow this pattern)
 type GetUploadUrlResult =
-  | { success: true; hash: string; uploadUrl: string | null; key: string; blobId: number | null; previewUrl: string | null; url: string | null; }
+  | { success: true; hash: string; uploadUrl: string | null; key: string; blobId: number | null; assetRef?: string | null; previewUrl: string | null; url: string | null; }
   | { success: false; hash: string; error: string; };
 ```
 

@@ -106,6 +106,7 @@ const Blob: React.FC<BlobProps> = ({
                 setBlob(hash, {
                   uploadUrl: result.uploadUrl,
                   key: result.key,
+                  assetRef: result.assetRef ?? blob.assetRef ?? null,
                   errorMessage: null,
                   state: 'UPLOADING_URL_GENERATED',
                 });

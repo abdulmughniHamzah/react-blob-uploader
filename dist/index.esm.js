@@ -4448,6 +4448,7 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                                 setBlob(hash, {
                                     uploadUrl: result.uploadUrl,
                                     key: result.key,
+                                    assetRef: result.assetRef ?? blob.assetRef ?? null,
                                     errorMessage: null,
                                     state: 'UPLOADING_URL_GENERATED',
                                 });
@@ -4456,6 +4457,7 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                                 setBlob(hash, {
                                     blobId: result.blobId,
                                     key: result.key,
+                                    assetRef: result.assetRef ?? blob.assetRef ?? null,
                                     previewUrl: result.previewUrl ?? blob.previewUrl,
                                     url: result.url ?? blob.url,
                                     errorMessage: null,
@@ -4465,6 +4467,7 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             else if (result.key) {
                                 setBlob(hash, {
                                     key: result.key,
+                                    assetRef: result.assetRef ?? blob.assetRef ?? null,
                                     previewUrl: result.previewUrl ?? blob.previewUrl,
                                     url: result.url ?? blob.url,
                                     errorMessage: null,
@@ -4520,6 +4523,7 @@ const Blob = ({ instantUpload, instantSyncAttach, attachableId, attachableType, 
                             setBlob(hash, {
                                 blobId: result.id,
                                 key: result.key,
+                                assetRef: result.assetRef ?? blob.assetRef ?? null,
                                 url: result.url ?? null,
                                 errorMessage: null,
                                 state: 'BLOB_CREATED',

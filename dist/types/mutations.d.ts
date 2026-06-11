@@ -4,6 +4,7 @@ export type GetUploadUrlResult = {
     uploadUrl: string | null;
     key: string;
     blobId: number | null;
+    assetRef?: string | null;
     previewUrl: string | null;
     url: string | null;
 } | {
@@ -24,6 +25,7 @@ export type CreateBlobResult = {
     hash: string;
     id: number;
     key: string;
+    assetRef?: string | null;
     url: string;
     previewUrl: string | null;
 } | {
