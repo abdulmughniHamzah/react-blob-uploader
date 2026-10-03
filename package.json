@@ -14,7 +14,7 @@
   "scripts": {
     "build": "npx rollup -c",
     "dev": "npx rollup -c -w",
-    "test": "jest",
+    "test": "node --test test/*.test.cjs",
     "lint": "eslint src/**/*.{ts,tsx}",
     "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run build",

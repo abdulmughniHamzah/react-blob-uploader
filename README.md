@@ -4,6 +4,12 @@ A self-contained, production-ready React component for file uploads (images, doc
 
 Local build output under `dist/` is treated as generated output and is git-ignored.
 
+File selection checks the latest controlled blob list after each asynchronous
+checksum calculation. Identical files selected together or in overlapping
+selections are admitted once, and the maximum applies to unique files. Rejected
+duplicates do not create previews or restart uploads. Run `npm test` for the
+batch/concurrent selection regressions and `npm run type-check` for TypeScript.
+
 ## Workspace Development Contract (Mandatory)
 
 - Internal imports in workspace services/packages should use alias style `@/...` where path mapping is configured.

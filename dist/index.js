@@ -4277,6 +4277,20 @@ const calculateChecksum = async (file) => {
     return hashHex;
 };
 
+async function selectFiles({ files, maxItems, readBlobs, checksum, addFile }) {
+    for (const file of files) {
+        if (readBlobs().length >= maxItems)
+            break;
+        const hash = await checksum(file);
+        const current = readBlobs();
+        if (current.some(blob => blob.checksum === hash))
+            continue;
+        if (current.length >= maxItems)
+            break;
+        addFile(file, hash);
+    }
+}
+
 /**
  * @license lucide-react v0.460.0 - ISC
  *
@@ -4794,32 +4808,31 @@ const BlobUploader = ({ instantUpload, instantSyncAttach = false, maxBlobs, blob
     const handleFiles = React.useCallback(async (fileList) => {
         if (!fileList)
             return;
-        const current = blobsRef.current;
-        const files = Array.from(fileList);
-        const validFiles = files.slice(0, Math.max(maxItems - current.length, 0));
-        for (const file of validFiles) {
-            const checksum = await calculateChecksum(file);
-            if (current.some((blob) => blob.checksum === checksum)) {
-                continue;
-            }
-            filesMapRef.current.set(checksum, file);
-            const newBlob = {
-                attachmentId: null,
-                blobId: null,
-                key: null,
-                previewUrl: URL.createObjectURL(file),
-                name: file.name,
-                uploadUrl: null,
-                mimeType: file.type,
-                size: file.size,
-                checksum: checksum,
-                state: 'SELECTED_FOR_UPLOAD',
-                errorMessage: null,
-                url: null,
-                retryCount: maxRetries,
-            };
-            addBlob(newBlob);
-        }
+        await selectFiles({
+            files: Array.from(fileList),
+            maxItems,
+            readBlobs: () => blobsRef.current,
+            checksum: calculateChecksum,
+            addFile: (file, checksum) => {
+                filesMapRef.current.set(checksum, file);
+                const newBlob = {
+                    attachmentId: null,
+                    blobId: null,
+                    key: null,
+                    previewUrl: URL.createObjectURL(file),
+                    name: file.name,
+                    uploadUrl: null,
+                    mimeType: file.type,
+                    size: file.size,
+                    checksum: checksum,
+                    state: 'SELECTED_FOR_UPLOAD',
+                    errorMessage: null,
+                    url: null,
+                    retryCount: maxRetries,
+                };
+                addBlob(newBlob);
+            },
+        });
     }, [maxItems, maxRetries, addBlob]);
     const stateSetters = React.useMemo(() => ({
         setBlob,

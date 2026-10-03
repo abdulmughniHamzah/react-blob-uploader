@@ -13,6 +13,7 @@ import {
 } from '@dnd-kit/sortable';
 import { BlobType } from '../types/blob';
 import { calculateChecksum } from '../utils/checksum';
+import { selectFiles } from '../utils/fileSelection';
 import SortableBlob from './SortableBlob';
 import { LoadedPropsType } from './propsType';
 import { mergeStyling } from '../types/styling';
@@ -94,36 +95,32 @@ const BlobUploader = ({
 
   const handleFiles = useCallback(async (fileList: FileList | null) => {
     if (!fileList) return;
-    const current = blobsRef.current;
-    const files: File[] = Array.from(fileList);
-    const validFiles: File[] = files.slice(0, Math.max(maxItems - current.length, 0));
+    await selectFiles({
+      files: Array.from(fileList),
+      maxItems,
+      readBlobs: () => blobsRef.current,
+      checksum: calculateChecksum,
+      addFile: (file, checksum) => {
+        filesMapRef.current.set(checksum, file);
 
-    for (const file of validFiles) {
-      const checksum = await calculateChecksum(file);
-
-      if (current.some((blob) => blob.checksum === checksum)) {
-        continue;
-      }
-
-      filesMapRef.current.set(checksum, file);
-
-      const newBlob: BlobType = {
-        attachmentId: null,
-        blobId: null,
-        key: null,
-        previewUrl: URL.createObjectURL(file),
-        name: file.name,
-        uploadUrl: null,
-        mimeType: file.type,
-        size: file.size,
-        checksum: checksum,
-        state: 'SELECTED_FOR_UPLOAD',
-        errorMessage: null,
-        url: null,
-        retryCount: maxRetries, // Initialize with configurable retries
-      };
-      addBlob(newBlob);
-    }
+        const newBlob: BlobType = {
+          attachmentId: null,
+          blobId: null,
+          key: null,
+          previewUrl: URL.createObjectURL(file),
+          name: file.name,
+          uploadUrl: null,
+          mimeType: file.type,
+          size: file.size,
+          checksum: checksum,
+          state: 'SELECTED_FOR_UPLOAD',
+          errorMessage: null,
+          url: null,
+          retryCount: maxRetries, // Initialize with configurable retries
+        };
+        addBlob(newBlob);
+      },
+    });
   }, [maxItems, maxRetries, addBlob]);
 
   const stateSetters = useMemo(
